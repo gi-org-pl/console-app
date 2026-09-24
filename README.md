@@ -17,7 +17,7 @@ yarn dev
 ```sh
 yarn typecheck
 yarn lint
-yarn test --run
+yarn test:coverage
 yarn build
 yarn playwright install chromium firefox webkit
 yarn e2e
@@ -26,9 +26,18 @@ yarn preview --host 127.0.0.1 --port 4173
 
 Playwright sam uruchamia preview **wcześniej zbudowanej** aplikacji. Zmiana kodu wymaga ponownego `yarn build`. Testy sprawdzają Chromium, Firefox, WebKit i profil mobilnego WebKit. Raport, PNG i zrzuty trafiają do `playwright-report/` oraz `test-results/`.
 
-- [Architektura i dodawanie modułu](docs/architecture.md)
-- [Demo oraz kryteria akceptacji](docs/foundation-acceptance.md)
-- [Standardy GI](https://github.com/gi-org-pl/gi-tech-standards)
+Standardy front-endu GI są w [CLAUDE.md](CLAUDE.md).
+
+## Moduły i szablony grafik
+
+- **Nowy moduł Console:** dopisz wpis do `CONSOLE_MODULES` w `src/constants/console.ts`, dodaj widok w `src/components/<domena>/` i cienki plik w `src/pages/`.
+- **Nowy szablon grafiki (Marketing):** utwórz folder `src/components/marketing/ExportLab/templates/<Nazwa>Template/` z komponentem (HTML + Tailwind, rysowany w pikselach formatu) oraz plikiem `.constants.ts` (nazwa, pola, limity, obsługa zdjęcia). Dopisz go do `GRAPHIC_TEMPLATES` w `ExportLab.constants.ts`. Pojemniki, które nie mogą się przepełnić, oznacz atrybutem `data-fit`; eksport zablokuje wtedy przyciętą treść.
+
+PNG powstaje przez rasteryzację wyrenderowanego szablonu (`modern-screenshot`); podgląd jest dokładnie pobieranym plikiem.
+
+## Zależności do akceptacji Technical Leadera
+
+Poza stackiem z CLAUDE.md §1 dodano: `@fortawesome/*` (ikony solid) oraz `modern-screenshot` (eksport szablonów HTML do PNG). Wymagają zatwierdzenia TL.
 
 ## Hosting
 
@@ -44,4 +53,4 @@ Przed udostępnieniem sprawdź `/`, bezpośrednie `/marketing`, odświeżenie, b
 
 ## Materiały marki
 
-Poppins i Roboto są dostarczone lokalnie z licencjami OFL w `public/fonts`. Układ graficzny i znak tekstowy w powłoce są demonstracyjne. Zatwierdzone szablony i logo SVG zostaną dostarczone później. Marketing MVP powstaje po akceptacji etapu 1.
+Poppins i Roboto są dostarczone lokalnie z licencjami OFL w `public/fonts`. Logo aplikacji (`src/assets/icons/console-logo.svg`) i awatar (`src/assets/images/avatar.png`) pochodzą od zespołu. Szablony „Klasyczny” i „Cytat” są demonstracyjne i czekają na zatwierdzony standard graficzny.

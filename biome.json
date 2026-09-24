@@ -1,18 +1,35 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "ignoreUnknown": false },
-  "formatter": { "enabled": true, "indentStyle": "space" },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
+  },
   "linter": {
     "enabled": true,
-    "rules": { "recommended": false },
+    "rules": {
+      "recommended": false
+    },
     "includes": ["**", "!dist"]
   },
-  "javascript": { "formatter": { "quoteStyle": "double" } },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
   "overrides": [
     {
       "includes": ["**/*.{ts,tsx}"],
-      "javascript": { "globals": [] },
+      "javascript": {
+        "globals": []
+      },
       "linter": {
         "rules": {
           "complexity": {
@@ -23,7 +40,9 @@
             "useFlatMap": "error",
             "useIndexOf": "error"
           },
-          "correctness": { "noInvalidBuiltinInstantiation": "error" },
+          "correctness": {
+            "noInvalidBuiltinInstantiation": "error"
+          },
           "style": {
             "noNegationElse": "off",
             "noNestedTernary": "off",
@@ -181,6 +200,15 @@
   ],
   "assist": {
     "enabled": true,
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }

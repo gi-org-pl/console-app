@@ -2,6 +2,9 @@ import type { Preview } from "@storybook/react-vite";
 
 import "../src/index.css";
 
+// Console is dark-only; enable Athena's `dark:` variants in stories too.
+document.documentElement.classList.add("dark");
+
 const preview: Preview = {
   parameters: {
     controls: {

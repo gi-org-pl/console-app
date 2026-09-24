@@ -8,8 +8,21 @@ export default defineConfig({
   test: {
     include: ["**/*.test.tsx", "**/*.test.ts"],
     globals: true,
+    clearMocks: true,
     environment: "jsdom",
     setupFiles: ["./setupTests.ts"],
+    coverage: {
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.stories.tsx",
+        "src/**/*.types.ts",
+        "src/types/**",
+        "src/pages/**",
+        "src/root.tsx",
+        "src/routes.ts",
+      ],
+      thresholds: { statements: 95, branches: 95, functions: 95, lines: 95 },
+    },
   },
   resolve: {
     alias: {
