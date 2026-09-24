@@ -24,7 +24,7 @@ const ConsoleShell = ({ children }: Props) => {
         Przejdź do treści
       </a>
       <Sidebar />
-      <div className="min-w-0">
+      <div className="flex min-h-screen min-w-0 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-app-border bg-app-bg p-4 text-base text-app-muted sm:px-8">
           <div>
             Console{" "}
@@ -39,15 +39,18 @@ const ConsoleShell = ({ children }: Props) => {
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto min-h-[calc(100vh-128px)] max-w-[1552px] px-4 py-8 sm:px-8"
+          className="mx-auto w-full max-w-[1552px] flex-1 px-4 py-8 sm:px-8"
         >
           {children}
         </main>
-        <footer className="flex flex-wrap items-center gap-4 border-t border-app-border p-4 text-base text-app-muted sm:px-8">
-          Generacja Innowacja
-          <span className="hidden sm:inline">
-            Technologia w służbie społeczeństwa.
-          </span>
+        <footer className="flex flex-wrap items-center gap-4 border-t border-app-border p-4 text-sm leading-5 text-app-muted sm:px-8 sm:pb-8">
+          <address className="not-italic">
+            © Fundacja Generacja Innowacja, 2026
+            <br />
+            ul. Twarda 18, 00-105 Warszawa
+            <br />
+            KRS 0001041229, NIP 5214023308
+          </address>
           <a
             className="ml-auto text-app-accent-text"
             href="https://gi.org.pl"

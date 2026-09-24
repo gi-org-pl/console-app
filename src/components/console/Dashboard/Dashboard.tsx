@@ -7,18 +7,18 @@ import ModuleCard from "./ModuleCard/ModuleCard";
 const Dashboard = () => (
   <>
     <PageHeading
-      eyebrow="Przestrzeń zespołu"
+      eyebrow="Console"
       title={
         <>
-          Mniej klikania.
+          Narzędzia dla
           <br />
-          Więcej działania
+          wolontariuszy
         </>
       }
-      description="Codzienne zadania fundacji. Jeden zestaw narzędzi."
+      description=""
     />
     <section aria-labelledby="modules-title">
-      <SectionHeading id="modules-title" title="Twoje narzędzia" />
+      <SectionHeading id="modules-title" title="Dostępne narzędzia" />
       <div className="grid gap-4 tablet:grid-cols-[1.4fr_1fr] desktop:gap-8">
         {CONSOLE_MODULES.map((module, index) => (
           <ModuleCard key={module.path} module={module} position={index + 1} />

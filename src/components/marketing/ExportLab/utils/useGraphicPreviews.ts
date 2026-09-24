@@ -35,12 +35,17 @@ export function useGraphicPreviews(
         const previews: Preview[] = [];
         // Sequential rendering bounds peak memory on phones.
         for (const format of GRAPHIC_FORMATS) {
-          const blob = await rasterizeGraphic(template, content, format);
+          const { blob, hasOverflow } = await rasterizeGraphic(
+            template,
+            content,
+            format,
+          );
           if (isCancelled) return;
           const url = URL.createObjectURL(blob);
           urls.push(url);
           previews.push({
             formatId: format.id,
+            hasOverflow,
             url,
             file: new File([blob], `gi-${template.id}-${format.id}.png`, {
               type: "image/png",

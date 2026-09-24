@@ -46,7 +46,7 @@ describe("<StandardTemplate />", () => {
       });
     });
 
-    it("puts the bar at the top of the whole story above its framed card", () => {
+    it("puts the bar inside the framed story card above its text", () => {
       const { container } = render(
         <StandardTemplate
           values={{ ...values, funding: "proo" }}
@@ -54,10 +54,12 @@ describe("<StandardTemplate />", () => {
           format={GRAPHIC_FORMATS[2]}
         />,
       );
-      expect(container.firstElementChild?.firstElementChild).toHaveAttribute(
-        "data-funding-banner",
-        "proo",
-      );
+      const banner = container.querySelector('[data-funding-banner="proo"]');
+      expect(banner?.parentElement).toHaveClass("rounded-4xl");
+      expect(banner?.nextElementSibling).toHaveAttribute("data-fit");
+      expect(
+        container.firstElementChild?.firstElementChild,
+      ).not.toHaveAttribute("data-funding-banner");
       expect(container.querySelectorAll("[data-funding-banner]")).toHaveLength(
         1,
       );
@@ -145,6 +147,23 @@ describe("<StandardTemplate />", () => {
       expect(photo?.nextElementSibling).toHaveClass(
         "from-black/50",
         "to-black",
+      );
+    });
+
+    it("reduces the gradient to a quarter when both text fields are blank", () => {
+      const { container } = render(
+        <StandardTemplate
+          values={{ ...values, title: "", subtitle: " ** " }}
+          photo={{ url: "blob:photo", focalX: 50, focalY: 50 }}
+          format={square}
+        />,
+      );
+      const photo = container.querySelector('img[src="blob:photo"]');
+      expect(photo).toBeInTheDocument();
+      expect(photo?.nextElementSibling).toHaveClass(
+        "bg-linear-to-b",
+        "from-black/[12.5%]",
+        "to-black/25",
       );
     });
   });

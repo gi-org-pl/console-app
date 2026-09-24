@@ -19,10 +19,10 @@ describe("getDefaultFieldValues", () => {
         titleSize: "64",
         subtitle:
           "Łączymy technologię i społeczne zaangażowanie. Działaj razem z nami!",
-        subtitleSize: "24",
+        subtitleSize: "40",
         position: "bottom",
         align: "left",
-        funding: "none",
+        funding: "proo",
       });
     });
   });

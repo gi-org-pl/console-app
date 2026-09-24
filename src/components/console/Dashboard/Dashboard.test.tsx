@@ -12,9 +12,12 @@ describe("<Dashboard />", () => {
         </MemoryRouter>,
       );
       expect(
-        screen.getByRole("heading", { level: 1, name: /Mniej klikania/ }),
+        screen.getByRole("heading", {
+          level: 1,
+          name: /Narzędzia dla\s*wolontariuszy/,
+        }),
       ).toBeVisible();
-      const tools = screen.getByRole("region", { name: "Twoje narzędzia" });
+      const tools = screen.getByRole("region", { name: "Dostępne narzędzia" });
       expect(within(tools).getAllByRole("article")).toHaveLength(
         CONSOLE_MODULES.length,
       );

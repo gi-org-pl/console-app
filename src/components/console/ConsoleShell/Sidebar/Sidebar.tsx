@@ -32,12 +32,16 @@ const NavItem = ({
 
 const Sidebar = () => (
   <aside className="flex flex-col gap-4 border-b border-app-border bg-app-bg p-4 sm:sticky sm:top-0 sm:h-screen sm:gap-0 sm:border-r sm:border-b-0 sm:py-8">
-    <Link to="/" aria-label="Console — strona główna" className="self-start">
+    <Link
+      to="/"
+      aria-label="Console — strona główna"
+      className="self-start px-4"
+    >
       <img
-        className="block h-auto w-44 max-w-full"
+        className="block h-auto w-28 sm:w-36 desktop:w-44"
         src={consoleLogo}
-        width={523}
-        height={110}
+        width={477}
+        height={96}
         alt=""
       />
     </Link>
@@ -55,7 +59,8 @@ const Sidebar = () => (
         />
       ))}
     </nav>
-    <div className="mt-auto hidden items-center gap-2 border-t border-app-border pt-4 text-base font-medium sm:flex">
+    {/* Same height as the three-line footer, so both top borders line up. */}
+    <div className="mt-auto hidden h-[77px] items-center gap-2 border-t border-app-border pt-4 text-base font-medium sm:flex">
       <img
         className="size-10 shrink-0 rounded-full border border-app-border object-cover"
         src={avatar}

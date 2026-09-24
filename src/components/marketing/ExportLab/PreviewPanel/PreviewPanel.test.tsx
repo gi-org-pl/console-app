@@ -5,7 +5,9 @@ import PreviewPanel from "./PreviewPanel";
 const file = new File(["png"], "gi-classic-square.png", { type: "image/png" });
 const readyState: PreviewsState = {
   status: "ready",
-  previews: [{ formatId: "square", url: "blob:square", file }],
+  previews: [
+    { formatId: "square", hasOverflow: false, url: "blob:square", file },
+  ],
   error: null,
 };
 

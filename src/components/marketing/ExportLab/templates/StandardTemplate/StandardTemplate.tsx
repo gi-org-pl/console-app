@@ -1,6 +1,5 @@
 import longBackground from "../../../../../assets/icons/long-bg.svg";
 import type { TemplateProps } from "../../ExportLab.types";
-import FundingBanner from "./FundingBanner/FundingBanner";
 import { getFundingGrant } from "./fundingOptions";
 import StandardCard from "./StandardCard/StandardCard";
 
@@ -27,7 +26,6 @@ const StandardTemplate = ({ values, photo, format }: TemplateProps) => {
       className="relative flex flex-col overflow-hidden bg-app-bg"
       style={{ width: format.width, height: format.height }}
     >
-      {funding && <FundingBanner grant={funding} />}
       <div className="relative grid min-h-0 flex-1 place-items-center overflow-hidden">
         <img
           src={longBackground}
@@ -40,6 +38,7 @@ const StandardTemplate = ({ values, photo, format }: TemplateProps) => {
           width={cardWidth}
           height={Math.round(cardWidth * CARD_ASPECT)}
           className="rounded-4xl border border-white/10"
+          funding={funding ?? undefined}
         />
       </div>
     </div>

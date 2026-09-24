@@ -27,7 +27,10 @@ vi.mock("./ExportLab.constants", async (importOriginal) => {
 describe("<ExportLab />", () => {
   beforeEach(() => {
     vi.mocked(loadGraphicFonts).mockResolvedValue();
-    vi.mocked(rasterizeGraphic).mockResolvedValue(new Blob(["png"]));
+    vi.mocked(rasterizeGraphic).mockResolvedValue({
+      blob: new Blob(["png"]),
+      hasOverflow: false,
+    });
     URL.createObjectURL = vi.fn(() => "blob:preview");
     URL.revokeObjectURL = vi.fn();
   });
@@ -36,6 +39,7 @@ describe("<ExportLab />", () => {
     it("renders the standard template previews from its sample text", async () => {
       const { container } = render(<ExportLab />);
       expect(screen.getByRole("radio", { name: "Standard" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "PROO" })).toBeChecked();
       await waitFor(() =>
         expect(screen.getAllByRole("link", { name: /^Pobierz/ })).toHaveLength(
           4,
@@ -45,7 +49,7 @@ describe("<ExportLab />", () => {
         fireEvent.load(image);
       expect(
         screen.getByRole("img", {
-          name: /^Post kwadratowy: Dobre idee zmieniają świat\. Łączymy .* nami!$/,
+          name: /^Post kwadratowy: Dobre idee zmieniają świat\. Łączymy .* nami! Finansowanie: PROO\.$/,
         }),
       ).toBeVisible();
     });

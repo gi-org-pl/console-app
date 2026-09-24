@@ -60,7 +60,14 @@ const StandardCard = ({
           className="absolute inset-0 size-full object-cover"
           style={{ objectPosition: `${photo.focalX}% ${photo.focalY}%` }}
         />
-        <div className="absolute inset-0 bg-linear-to-b from-black/50 to-black" />
+        <div
+          className={twMerge(
+            "absolute inset-0 bg-linear-to-b",
+            hasText(values.title) || hasText(values.subtitle)
+              ? "from-black/50 to-black"
+              : "from-black/[12.5%] to-black/25",
+          )}
+        />
       </>
     )}
     {funding && <FundingBanner grant={funding} />}

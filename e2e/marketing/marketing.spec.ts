@@ -19,19 +19,54 @@ const waitForPreviews = (page: Page) =>
   expect(page.getByRole("link", { name: /^Pobierz/ })).toHaveCount(4);
 
 test.describe("Feature: Marketing graphics export", () => {
-  test("Scenario: PROO bar is optional and exported at the top of every format", async ({
+  test("Scenario: overflowing text warns on the format without blocking its PNG", async ({
+    page,
+  }) => {
+    await page.goto("./marketing");
+    await waitForPreviews(page);
+    await expect(
+      page.getByRole("article").filter({
+        has: page.getByRole("heading", { name: /Post poziomy/ }),
+      }),
+    ).not.toHaveClass(/border-red-500/);
+    await page
+      .getByLabel("Podtytuł", { exact: true })
+      .fill("Wspólnie tworzymy zmiany dla młodych ludzi. ".repeat(8));
+
+    await waitForPreviews(page);
+    const landscape = page.getByRole("article", {
+      name: "Post poziomy: możliwe ucięcie treści",
+    });
+    await expect(landscape).toHaveClass(/border-red-500/);
+    await expect(landscape.getByRole("heading")).toHaveClass(/text-red-500/);
+    await expect(
+      page.getByRole("article").filter({
+        has: page.getByRole("heading", { name: /Post kwadratowy/ }),
+      }),
+    ).not.toHaveClass(/border-red-500/);
+    await expect(
+      page.getByRole("link", { name: "Pobierz Post poziomy PNG" }),
+    ).toHaveAttribute("href", /^blob:/);
+    await expect(
+      page.getByText("Treść nie mieści się", { exact: false }),
+    ).toHaveCount(0);
+  });
+
+  test("Scenario: PROO is the default and stays inside every exported card", async ({
     page,
   }, info) => {
     await page.goto("./marketing");
     await waitForPreviews(page);
     const noFunding = page.getByRole("radio", { name: "Bez belki" });
     const proo = page.getByRole("radio", { name: "PROO" });
-    await expect(noFunding).toBeChecked();
+    await expect(proo).toBeChecked();
     const square = page.getByRole("img", { name: /^Post kwadratowy:/ });
     const before = await square.getAttribute("src");
 
-    await choose(page, "PROO");
+    await choose(page, "Bez belki");
     await expect(square).not.toHaveAttribute("src", before!);
+    await waitForPreviews(page);
+    await choose(page, "PROO");
     await waitForPreviews(page);
 
     for (const format of FORMATS) {
@@ -44,7 +79,8 @@ test.describe("Feature: Marketing graphics export", () => {
         canvas.height = img.naturalHeight;
         const context = canvas.getContext("2d")!;
         context.drawImage(img, 0, 0);
-        const top = context.getImageData(0, 0, canvas.width, 160).data;
+        const barTop = img.naturalHeight === 1920 ? 325 : 0;
+        const top = context.getImageData(0, barTop, canvas.width, 160).data;
         let leftWhite = 0;
         let rightWhite = 0;
         for (let y = 32; y < 155; y++) {
@@ -61,12 +97,17 @@ test.describe("Feature: Marketing graphics export", () => {
           }
         }
         return {
-          blackCorner: Array.from(top.slice(0, 4)),
+          blackBar: Array.from(
+            top.slice(
+              (8 * canvas.width + canvas.width / 2) * 4,
+              (8 * canvas.width + canvas.width / 2) * 4 + 4,
+            ),
+          ),
           leftWhite,
           rightWhite,
         };
       });
-      expect(pixels.blackCorner).toEqual([0, 0, 0, 255]);
+      expect(pixels.blackBar).toEqual([0, 0, 0, 255]);
       expect(pixels.leftWhite).toBeGreaterThan(100);
       expect(pixels.rightWhite).toBeGreaterThan(100);
     }
@@ -221,6 +262,20 @@ test.describe("Feature: Marketing graphics export", () => {
         .poll(async () => {
           const [red, , blue] = await pixel();
           return blue > 60 && red < 20;
+        })
+        .toBe(true);
+    });
+
+    const darkenedBlue = (await pixel())[2];
+    await test.step("When both text fields are cleared, the gradient fades to a quarter", async () => {
+      await page.getByLabel("Tytuł", { exact: true }).fill("");
+      await page.getByLabel("Podtytuł", { exact: true }).fill("");
+      await expect
+        .poll(async () => {
+          const [red, green, blue] = await pixel();
+          return (
+            red < 10 && green < 10 && blue > darkenedBlue + 80 && blue < 245
+          );
         })
         .toBe(true);
     });

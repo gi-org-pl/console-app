@@ -10,7 +10,7 @@ test.describe("Feature: Console dashboard", () => {
     await test.step("Given the user is on the dashboard", async () => {
       await page.goto("./");
       await expect(
-        page.getByRole("heading", { name: /Mniej klikania/ }),
+        page.getByRole("heading", { name: /Narzędzia dla\s*wolontariuszy/ }),
       ).toBeVisible();
     });
 

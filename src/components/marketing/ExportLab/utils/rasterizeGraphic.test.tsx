@@ -1,11 +1,11 @@
 import { domToBlob } from "modern-screenshot";
 import { GRAPHIC_FORMATS } from "../ExportLab.constants";
 import type { GraphicTemplate } from "../ExportLab.types";
-import { assertContentFits } from "./assertContentFits";
+import { contentOverflows } from "./contentOverflows";
 import { rasterizeGraphic } from "./rasterizeGraphic";
 
 vi.mock("modern-screenshot", () => ({ domToBlob: vi.fn() }));
-vi.mock("./assertContentFits", () => ({ assertContentFits: vi.fn() }));
+vi.mock("./contentOverflows", () => ({ contentOverflows: vi.fn() }));
 
 const format = GRAPHIC_FORMATS[3];
 const png = new Blob(["png"]);
@@ -25,6 +25,7 @@ describe("rasterizeGraphic", () => {
   beforeEach(() => {
     HTMLImageElement.prototype.decode = vi.fn().mockResolvedValue(undefined);
     vi.mocked(domToBlob).mockResolvedValue(png);
+    vi.mocked(contentOverflows).mockReturnValue(false);
   });
 
   describe("when the template renders", () => {
@@ -35,9 +36,9 @@ describe("rasterizeGraphic", () => {
           {values.title}
         </div>
       ));
-      const blob = await rasterizeGraphic(template, content, format);
+      const result = await rasterizeGraphic(template, content, format);
 
-      expect(blob).toBe(png);
+      expect(result).toEqual({ blob: png, hasOverflow: false });
       // domToBlob is overloaded; the mock records the (node, options) call form.
       const [node, options] = vi.mocked(domToBlob).mock.calls[0] as unknown as [
         HTMLElement,
@@ -46,8 +47,19 @@ describe("rasterizeGraphic", () => {
       expect(node).toHaveTextContent("Tytuł");
       expect(options).toMatchObject({ width: 1200, height: 628, scale: 1 });
       expect(HTMLImageElement.prototype.decode).toHaveBeenCalled();
-      expect(assertContentFits).toHaveBeenCalledWith(node, format);
+      expect(contentOverflows).toHaveBeenCalledWith(node);
       expect(document.body).toBeEmptyDOMElement();
+    });
+
+    it("still creates the PNG when text overflows", async () => {
+      vi.mocked(contentOverflows).mockReturnValue(true);
+      const result = await rasterizeGraphic(
+        createTemplate(() => <div data-fit />),
+        content,
+        format,
+      );
+      expect(result).toEqual({ blob: png, hasOverflow: true });
+      expect(domToBlob).toHaveBeenCalled();
     });
   });
 

@@ -5,6 +5,7 @@ import PreviewCard from "./PreviewCard";
 const format = GRAPHIC_FORMATS[0];
 const createPreview = (url: string) => ({
   formatId: "square",
+  hasOverflow: false,
   url,
   file: new File(["png"], "gi-classic-square.png", { type: "image/png" }),
 });
@@ -143,6 +144,23 @@ describe("<PreviewCard />", () => {
       expect(downloadLink()).toHaveAttribute("href", "blob:square");
       expect(downloadLink()).toHaveAttribute("title", "Pobierz PNG");
       expect(screen.queryByRole("button")).toBeNull();
+    });
+  });
+
+  describe("when the text may be clipped", () => {
+    it("marks only the card red without blocking download or showing an error", () => {
+      const { container } = render(
+        <PreviewCard
+          {...baseProps}
+          preview={{ ...preview, hasOverflow: true }}
+        />,
+      );
+      expect(container.querySelector("article")).toHaveClass("border-red-500");
+      expect(screen.getByRole("heading", { level: 3 })).toHaveClass(
+        "text-red-500",
+      );
+      expect(downloadLink()).toHaveAttribute("href", "blob:square");
+      expect(screen.queryByRole("alert")).toBeNull();
     });
   });
 

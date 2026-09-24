@@ -1,10 +1,12 @@
-# Console · Generacja Innowacja
+# Console
 
-Wspólna powłoka wewnętrznych narzędzi GI. Aktualny zakres: **etap 1 — fundament** i publiczne laboratorium eksportu Marketingu. Bez kont, backendu ani bazy. Treść demonstracji nie jest zapisywana; odświeżenie ją resetuje.
+A shared shell for Generacja Innowacja's internal tools. It currently ships one module, **Marketing**, a browser-based graphics export lab. There are no accounts, backend or database. Demo content is not stored anywhere; a page refresh resets it.
 
-## Uruchomienie
+The UI copy is in Polish because the app is built for the foundation's team. Code, comments and docs are in English.
 
-Node.js 24+, Yarn 1.22 (np. przez Corepack).
+## Getting started
+
+Requires Node.js 24+ and Yarn 1.22 (e.g. via Corepack).
 
 ```sh
 corepack enable
@@ -12,7 +14,7 @@ yarn install --frozen-lockfile
 yarn dev
 ```
 
-## Sprawdzenie i demo
+## Checks
 
 ```sh
 yarn typecheck
@@ -24,34 +26,39 @@ yarn e2e
 yarn preview --host 127.0.0.1 --port 4173
 ```
 
-Playwright sam uruchamia preview **wcześniej zbudowanej** aplikacji. Zmiana kodu wymaga ponownego `yarn build`. Testy sprawdzają Chromium, Firefox, WebKit i profil mobilnego WebKit. Raport, PNG i zrzuty trafiają do `playwright-report/` oraz `test-results/`.
+Playwright serves the **previously built** app through `vite preview`, so run `yarn build` again after changing code. The e2e suite covers Chromium, Firefox, WebKit and a mobile WebKit profile. Reports, exported PNGs and screenshots are written to `playwright-report/` and `test-results/`.
 
-Standardy front-endu GI są w [CLAUDE.md](CLAUDE.md).
+Front-end standards live in [CLAUDE.md](CLAUDE.md).
 
-## Moduły i szablony grafik
+## Extending Console
 
-- **Nowy moduł Console:** dopisz wpis do `CONSOLE_MODULES` w `src/constants/console.ts`, dodaj widok w `src/components/<domena>/` i cienki plik w `src/pages/`.
-- **Nowy szablon grafiki (Marketing):** utwórz folder `src/components/marketing/ExportLab/templates/<Nazwa>Template/` z komponentem (HTML + Tailwind, rysowany w pikselach formatu) oraz plikiem `.constants.ts` (nazwa, pola, limity, obsługa zdjęcia). Dopisz go do `GRAPHIC_TEMPLATES` w `ExportLab.constants.ts`. Pojemniki, które nie mogą się przepełnić, oznacz atrybutem `data-fit`; eksport zablokuje wtedy przyciętą treść.
-- **Nowy grant dla szablonu Standard:** dodaj jego dwa obrazy do `public/grants/` i wpis w `src/components/marketing/ExportLab/templates/StandardTemplate/fundingOptions.ts`. Wybór w formularzu i belka w eksporcie korzystają z tego samego katalogu; wartość `none` oznacza brak belki.
+- **New Console module:** add an entry to `CONSOLE_MODULES` in `src/constants/console.ts`, put the view in `src/components/<domain>/` and add a thin route file in `src/pages/`. The module then appears in the sidebar and on the dashboard.
+- **New graphic template (Marketing):** create `src/components/marketing/ExportLab/templates/<Name>Template/` with the component (HTML + Tailwind, laid out in the format's pixels) and a `.constants.ts` file describing its name, fields, limits and photo support. Register it in `GRAPHIC_TEMPLATES` in `ExportLab.constants.ts`. Mark containers that must not overflow with the `data-fit` attribute; export is blocked when their content gets clipped.
+- **New grant for the Standard template:** add its two images to `public/grants/` and an entry to `src/components/marketing/ExportLab/templates/StandardTemplate/fundingOptions.ts`. The form picker and the exported banner read from the same list; the `none` value means no banner.
 
-PNG powstaje przez rasteryzację wyrenderowanego szablonu (`modern-screenshot`); podgląd jest dokładnie pobieranym plikiem.
+PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 
-## Zależności do akceptacji Technical Leadera
+## Dependencies pending Technical Leader approval
 
-Poza stackiem z CLAUDE.md §1 dodano: `@fortawesome/*` (ikony solid) oraz `modern-screenshot` (eksport szablonów HTML do PNG). Wymagają zatwierdzenia TL.
+On top of the stack in CLAUDE.md §1, the project adds `@fortawesome/*` (solid icons) and `modern-screenshot` (HTML template to PNG export). Both need TL approval.
 
 ## Hosting
 
-Wynik `yarn build` to statyczny katalog **build/client**. CI publikuje artefakt builda i raporty testów. Serwer Node nie jest potrzebny.
+`yarn build` outputs a static site in **build/client**; no Node server is needed. CI publishes the build artifact and test reports.
 
-Hosting: **GitHub Pages**. Workflow `deploy-pages.yml` testuje aplikację i publikuje gałęzie `main` oraz `codex/poc` pod `https://gi-org-pl.github.io/console-app/`. Gałąź POC służy demonstracji przed akceptacją i scaleniem PR-a. Po zakończeniu POC usuń ją z triggera publikacji. W ustawieniach Pages źródłem jest GitHub Actions, a środowisko `github-pages` musi dopuszczać te gałęzie.
+The app is hosted on **GitHub Pages**. The `deploy-pages.yml` workflow tests the app and publishes the `main` branch to `https://gi-org-pl.github.io/console-app/`. In the Pages settings, the source must be GitHub Actions and the `github-pages` environment must allow `main`.
 
-Build dla Pages używa `CONSOLE_BASE_PATH=/console-app/`. `scripts/preparePages.mjs` kopiuje prerenderowany HTML do korzenia artefaktu, ponieważ Pages sam montuje witrynę pod nazwą repozytorium. Router prerenderuje statyczne trasy, więc `/marketing/` działa również po odświeżeniu bez serwerowego fallbacku.
+The Pages build uses `CONSOLE_BASE_PATH=/console-app/`. `scripts/preparePages.mjs` copies the prerendered HTML to the artifact root, because Pages itself mounts the site under the repository name. Static routes are prerendered, so `/marketing/` also works after a refresh without a server-side fallback.
 
-Aby podłączyć `console.gi.org.pl`, ustaw DNS CNAME `console` → `gi-org-pl.github.io`, domenę w ustawieniach Pages oraz zmienne repozytorium `PAGES_BASE_PATH=/` i `PAGES_CUSTOM_DOMAIN=console.gi.org.pl`. Uruchom deploy ponownie i włącz wymuszenie HTTPS po wydaniu certyfikatu. DNS domeny nie jest częścią repozytorium.
+To serve the app from `console.gi.org.pl`:
 
-Przed udostępnieniem sprawdź `/`, bezpośrednie `/marketing`, odświeżenie, brak poziomego scrollowania, lokalne fonty oraz download/share na telefonie. Publiczny POC jest celowy; ograniczenie dostępu do zespołu wymaga rzeczywistej bramki SSO przed późniejszym wdrożeniem wewnętrznym.
+1. Add a DNS CNAME record `console` → `gi-org-pl.github.io`. DNS is managed outside this repository.
+2. Set the custom domain in the Pages settings.
+3. Set the repository variables `PAGES_BASE_PATH=/` and `PAGES_CUSTOM_DOMAIN=console.gi.org.pl`.
+4. Re-run the deploy and enable "Enforce HTTPS" once the certificate is issued.
 
-## Materiały marki
+Before sharing a deploy, check `/`, a direct visit to `/marketing`, a page refresh, no horizontal scrolling, locally served fonts, and download/share on a phone. The app is intentionally public for now; restricting it to the team requires a real SSO gate before any internal rollout.
 
-Poppins i Roboto są dostarczone lokalnie z licencjami OFL w `public/fonts`. Logo aplikacji (`src/assets/icons/console-logo.svg`) i awatar (`src/assets/images/avatar.png`) pochodzą od zespołu. Szablony „Klasyczny” i „Cytat” są demonstracyjne i czekają na zatwierdzony standard graficzny.
+## Brand assets
+
+Poppins and Roboto are bundled locally in `public/fonts`, together with their OFL licenses. The app logo (`src/assets/icons/console-logo.svg`) and avatar (`src/assets/images/avatar.png`) were provided by the team.

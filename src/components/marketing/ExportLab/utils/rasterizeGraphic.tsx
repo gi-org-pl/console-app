@@ -6,7 +6,7 @@ import type {
   GraphicFormat,
   GraphicTemplate,
 } from "../ExportLab.types";
-import { assertContentFits } from "./assertContentFits";
+import { contentOverflows } from "./contentOverflows";
 
 /**
  * Renders the template's HTML off screen at the format's exact pixel size
@@ -18,7 +18,7 @@ export async function rasterizeGraphic(
   content: GraphicContent,
   format: GraphicFormat,
   scale = 1,
-): Promise<Blob> {
+): Promise<{ blob: Blob; hasOverflow: boolean }> {
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
   host.className = "pointer-events-none fixed top-0 -left-[100000px]";
@@ -34,13 +34,14 @@ export async function rasterizeGraphic(
     await Promise.all(
       Array.from(node.querySelectorAll("img"), (image) => image.decode()),
     );
-    assertContentFits(node, format);
-    return await domToBlob(node, {
+    const hasOverflow = contentOverflows(node);
+    const blob = await domToBlob(node, {
       width: format.width,
       height: format.height,
       scale,
       type: "image/png",
     });
+    return { blob, hasOverflow };
   } finally {
     root.unmount();
     host.remove();

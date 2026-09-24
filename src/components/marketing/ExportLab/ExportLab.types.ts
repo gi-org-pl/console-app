@@ -26,7 +26,7 @@ interface BaseTemplateField {
 
 export interface TextTemplateField extends BaseTemplateField {
   kind: "text";
-  /** Omit for text of any length; the layout still rejects text that does not fit. */
+  /** Omit for text of any length; layout overflow is a non-blocking warning. */
   maxLength?: number;
   isRequired?: boolean;
   isMultiline?: boolean;
@@ -85,7 +85,7 @@ export interface GraphicTemplate {
   supportsPhoto: boolean;
   /**
    * HTML + Tailwind layout rendered at the format's pixel size and rasterized
-   * to PNG. Mark boxes that must not overflow with `data-fit`.
+   * to PNG. Mark boxes whose overflow should warn with `data-fit`.
    */
   Component: ComponentType<TemplateProps>;
 }
@@ -110,6 +110,7 @@ export interface PhotoControls extends PhotoState {
 
 export interface Preview {
   formatId: string;
+  hasOverflow: boolean;
   url: string;
   file: File;
 }

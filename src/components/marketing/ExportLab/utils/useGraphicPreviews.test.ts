@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { STANDARD_TEMPLATE } from "../templates/StandardTemplate/StandardTemplate.constants";
-import { ContentError } from "./contentError";
 import { getDefaultFieldValues } from "./getDefaultFieldValues";
 import { loadGraphicFonts } from "./loadGraphicFonts";
 import { rasterizeGraphic } from "./rasterizeGraphic";
@@ -21,7 +20,10 @@ describe("useGraphicPreviews", () => {
   beforeEach(() => {
     urlCount = 0;
     vi.mocked(loadGraphicFonts).mockResolvedValue();
-    vi.mocked(rasterizeGraphic).mockResolvedValue(new Blob(["png"]));
+    vi.mocked(rasterizeGraphic).mockResolvedValue({
+      blob: new Blob(["png"]),
+      hasOverflow: false,
+    });
     URL.createObjectURL = vi.fn(() => `blob:${++urlCount}`);
     URL.revokeObjectURL = vi.fn();
   });
@@ -58,16 +60,20 @@ describe("useGraphicPreviews", () => {
   });
 
   describe("when a format does not fit", () => {
-    it("passes the blamed fields on", async () => {
-      vi.mocked(rasterizeGraphic).mockRejectedValue(
-        new ContentError("Nie mieści się", ["title", "detail"]),
-      );
+    it("keeps every export and marks only that format", async () => {
+      vi.mocked(rasterizeGraphic).mockImplementation(async (_, __, format) => ({
+        blob: new Blob(["png"]),
+        hasOverflow: format.id === "landscape",
+      }));
       const { result } = renderHook(() =>
         useGraphicPreviews(STANDARD_TEMPLATE, validContent),
       );
-      await waitFor(() =>
-        expect(result.current.error?.fieldIds).toEqual(["title", "detail"]),
-      );
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      expect(result.current.error).toBeNull();
+      expect(
+        result.current.previews.map((preview) => preview.hasOverflow),
+      ).toEqual([false, false, false, true]);
+      expect(result.current.previews).toHaveLength(4);
     });
   });
 
@@ -131,7 +137,7 @@ describe("useGraphicPreviews", () => {
     });
 
     it("ignores a late success of the stale render", async () => {
-      let finishStale = (_: Blob) => {};
+      let finishStale = (_: { blob: Blob; hasOverflow: boolean }) => {};
       vi.mocked(rasterizeGraphic).mockReturnValueOnce(
         new Promise((resolve) => {
           finishStale = resolve;
@@ -144,7 +150,7 @@ describe("useGraphicPreviews", () => {
       await waitFor(() => expect(rasterizeGraphic).toHaveBeenCalled());
       rerender({ content: { ...validContent } });
       await waitFor(() => expect(result.current.status).toBe("ready"));
-      finishStale(new Blob(["stale"]));
+      finishStale({ blob: new Blob(["stale"]), hasOverflow: false });
       await Promise.resolve();
       expect(result.current.previews).toHaveLength(4);
     });

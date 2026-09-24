@@ -43,7 +43,7 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
       label: "Rozmiar podtytułu",
       attachTo: "subtitle",
       options: textSizeOptions([24, 32, 40, 48]),
-      defaultValue: "24",
+      defaultValue: "40",
     },
     {
       kind: "choice",
@@ -64,7 +64,7 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
       id: "funding",
       label: "Finansowanie",
       options: FUNDING_OPTIONS,
-      defaultValue: "none",
+      defaultValue: "proo",
     },
   ],
   Component: StandardTemplate,

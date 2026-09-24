@@ -22,6 +22,9 @@ describe("<ConsoleShell />", () => {
         "href",
         "https://gi.org.pl",
       );
+      expect(screen.getByRole("contentinfo")).toHaveTextContent(
+        "© Fundacja Generacja Innowacja, 2026ul. Twarda 18, 00-105 WarszawaKRS 0001041229, NIP 5214023308",
+      );
     });
   });
 

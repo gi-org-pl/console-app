@@ -2,7 +2,7 @@ name: Deploy Console to GitHub Pages
 
 on:
   push:
-    branches: [main, codex/poc]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

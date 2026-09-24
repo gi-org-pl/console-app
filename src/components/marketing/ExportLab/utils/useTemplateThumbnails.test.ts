@@ -31,7 +31,10 @@ describe("useTemplateThumbnails", () => {
     vi.useFakeTimers();
     urlCount = 0;
     vi.mocked(loadGraphicFonts).mockResolvedValue();
-    vi.mocked(rasterizeGraphic).mockResolvedValue(new Blob(["png"]));
+    vi.mocked(rasterizeGraphic).mockResolvedValue({
+      blob: new Blob(["png"]),
+      hasOverflow: false,
+    });
     URL.createObjectURL = vi.fn(() => `blob:${++urlCount}`);
     URL.revokeObjectURL = vi.fn();
   });
@@ -100,7 +103,7 @@ describe("useTemplateThumbnails", () => {
 
   describe("when a render finishes after the content changed", () => {
     it("drops and releases the stale image", async () => {
-      let finish = (_: Blob) => {};
+      let finish = (_: { blob: Blob; hasOverflow: boolean }) => {};
       vi.mocked(rasterizeGraphic).mockReturnValueOnce(
         new Promise((resolve) => {
           finish = resolve;
@@ -113,7 +116,9 @@ describe("useTemplateThumbnails", () => {
       );
       await flush();
       rerender({ current: { ...values, title: "Nowy" } });
-      await act(async () => finish(new Blob(["stale"])));
+      await act(async () =>
+        finish({ blob: new Blob(["stale"]), hasOverflow: false }),
+      );
       expect(result.current).toEqual({});
       await flush();
       expect(result.current).toEqual({ plain: "blob:1" });

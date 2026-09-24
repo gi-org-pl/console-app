@@ -48,7 +48,7 @@ export function useTemplateThumbnails(
         if (template.id === selectedId) continue;
         try {
           validateContent(template, values);
-          const blob = await rasterizeGraphic(
+          const { blob } = await rasterizeGraphic(
             template,
             { values, photo: template.supportsPhoto ? photo : null },
             SQUARE_FORMAT,
@@ -59,7 +59,7 @@ export function useTemplateThumbnails(
           created.push(url);
           next[template.id] = url;
         } catch {
-          // A template the text does not fit simply keeps no thumbnail.
+          // A template that cannot render keeps no thumbnail.
         }
       }
       if (isCancelled) {

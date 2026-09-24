@@ -40,7 +40,17 @@ const PreviewCard = ({
   const alt = `${format.name}: ${description}`;
 
   return (
-    <article className="overflow-hidden rounded-[10px] border border-app-border bg-app-surface">
+    <article
+      className={twMerge(
+        "overflow-hidden rounded-[10px] border border-app-border bg-app-surface",
+        preview?.hasOverflow && "border-red-500 ring-2 ring-red-500",
+      )}
+      aria-label={
+        preview?.hasOverflow
+          ? `${format.name}: możliwe ucięcie treści`
+          : undefined
+      }
+    >
       <div className="grid h-80 place-items-center bg-app-surface-2 p-4 @container-[size] sm:h-72 tablet:h-56 desktop:h-72 wide:h-88">
         <div
           className="relative overflow-hidden rounded-xs bg-app-surface shadow-[0_5px_12px_rgb(0_0_0/50%)]"
@@ -100,7 +110,12 @@ const PreviewCard = ({
         {isBusy && <span className="sr-only">Przygotowujemy grafikę…</span>}
       </div>
       <div className="flex items-center justify-between gap-4 px-4 py-2">
-        <h3 className="font-display text-base font-semibold">
+        <h3
+          className={twMerge(
+            "font-display text-base font-semibold",
+            preview?.hasOverflow && "text-red-500",
+          )}
+        >
           {format.ratio}
           <span className="sr-only"> · {format.name}</span>
         </h3>
