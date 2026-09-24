@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.CONSOLE_BASE_PATH || "/",
   plugins: [tailwindcss(), reactRouter()],
   resolve: {
     alias: {

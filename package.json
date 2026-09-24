@@ -1,5 +1,5 @@
 {
-  "name": "vite-boilerplate",
+  "name": "gi-console",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,8 +8,9 @@
   "author": "generacja-innowacja",
   "scripts": {
     "dev": "vite",
-    "build": "npx react-router build",
-    "preview": "vite preview",
+    "build": "react-router build",
+    "preview": "vite preview --outDir build/client",
+    "typecheck": "react-router typegen && tsc -b",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
