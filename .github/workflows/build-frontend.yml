@@ -2,7 +2,7 @@ name: frontend-ci
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, codex/poc]
     types: [opened, synchronize, reopened]
 
 permissions:
