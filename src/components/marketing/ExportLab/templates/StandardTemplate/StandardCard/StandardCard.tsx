@@ -3,9 +3,9 @@ import footerLogo from "../../../../../../assets/icons/footer-logo.svg";
 import footerText from "../../../../../../assets/icons/footer-text.svg";
 import type { GraphicContent } from "../../../ExportLab.types";
 import { stripHighlights } from "../../../utils/tokenizeHighlights";
+import FundingBanner from "../../FundingBanner/FundingBanner";
+import type { getFundingGrant } from "../../fundingOptions";
 import HighlightedText from "../../HighlightedText/HighlightedText";
-import FundingBanner from "../FundingBanner/FundingBanner";
-import type { getFundingGrant } from "../fundingOptions";
 import { getStandardBackground } from "../utils/getStandardBackground";
 
 interface Props extends GraphicContent {

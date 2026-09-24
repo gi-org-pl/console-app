@@ -1,6 +1,6 @@
 import longBackground from "../../../../../assets/icons/long-bg.svg";
 import type { TemplateProps } from "../../ExportLab.types";
-import { getFundingGrant } from "./fundingOptions";
+import { getFundingGrant } from "../fundingOptions";
 import StandardCard from "./StandardCard/StandardCard";
 
 /** The 4:5 card is the design; taller formats show it framed instead of stretched. */

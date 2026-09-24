@@ -130,11 +130,11 @@ const TextField = ({
       ) : isMultiline ? (
         <textarea
           ref={control}
-          rows={4}
+          rows={2}
           {...controlProps}
           className={twMerge(
             FIELD_CONTROL_CLASS_NAME,
-            "min-h-32 resize-y",
+            "min-h-20 resize-y",
             borderClassName,
           )}
         />

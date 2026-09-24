@@ -37,7 +37,8 @@ describe("<TextField />", () => {
       render(<TextField {...baseProps} isMultiline />);
       const textarea = screen.getByLabelText("Tytuł");
       expect(textarea.tagName).toBe("TEXTAREA");
-      expect(textarea).toHaveAttribute("rows", "4");
+      expect(textarea).toHaveAttribute("rows", "2");
+      expect(textarea).toHaveClass("min-h-20");
       expect(screen.queryByRole("button")).toBeNull();
     });
   });

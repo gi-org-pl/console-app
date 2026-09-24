@@ -33,8 +33,8 @@ Front-end standards live in [CLAUDE.md](CLAUDE.md).
 ## Extending Console
 
 - **New Console module:** add an entry to `CONSOLE_MODULES` in `src/constants/console.ts`, put the view in `src/components/<domain>/` and add a thin route file in `src/pages/`. The module then appears in the sidebar and on the dashboard.
-- **New graphic template (Marketing):** create `src/components/marketing/ExportLab/templates/<Name>Template/` with the component (HTML + Tailwind, laid out in the format's pixels) and a `.constants.ts` file describing its name, fields, limits and photo support. Register it in `GRAPHIC_TEMPLATES` in `ExportLab.constants.ts`. Mark containers that must not overflow with the `data-fit` attribute; export is blocked when their content gets clipped.
-- **New grant for the Standard template:** add its two images to `public/grants/` and an entry to `src/components/marketing/ExportLab/templates/StandardTemplate/fundingOptions.ts`. The form picker and the exported banner read from the same list; the `none` value means no banner.
+- **New graphic template (Marketing):** create `src/components/marketing/ExportLab/templates/<Name>Template/` with the component (HTML + Tailwind, laid out in the format's pixels) and a `.constants.ts` file describing its name, fields, limits and photo support. Register it in `GRAPHIC_TEMPLATES` in `ExportLab.constants.ts`. Mark containers with `data-fit` to show a red warning on formats where text may be clipped; export remains available.
+- **New funding grant:** add its two images to `public/grants/` and an entry to `src/components/marketing/ExportLab/templates/fundingOptions.ts`. Standard and News share this list; the `none` value means no banner.
 
 PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 

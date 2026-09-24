@@ -23,6 +23,8 @@ describe("getDefaultFieldValues", () => {
         position: "bottom",
         align: "left",
         funding: "proo",
+        personName: "",
+        newsTitleSize: "48",
       });
     });
   });

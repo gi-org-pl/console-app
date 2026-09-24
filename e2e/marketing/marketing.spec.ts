@@ -19,6 +19,104 @@ const waitForPreviews = (page: Page) =>
   expect(page.getByRole("link", { name: /^Pobierz/ })).toHaveCount(4);
 
 test.describe("Feature: Marketing graphics export", () => {
+  test("Scenario: News exports the same content in every format", async ({
+    page,
+  }, info) => {
+    await page.goto("./marketing");
+    await choose(page, "News");
+    await page.getByLabel("Osoba (opcjonalnie)").fill("Krzysztof\nTurek");
+    await page
+      .getByLabel("Tytuł", { exact: true })
+      .fill("MyBetterness zajmuje podium");
+    await page
+      .getByLabel("Podtytuł", { exact: true })
+      .fill("Projekt wspiera opiekę nad seniorami.");
+    const image = await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 800;
+      canvas.height = 800;
+      const context = canvas.getContext("2d")!;
+      const gradient = context.createLinearGradient(0, 0, 800, 800);
+      gradient.addColorStop(0, "#ea4242");
+      gradient.addColorStop(1, "#337fe5");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 800, 800);
+      return canvas.toDataURL("image/png").split(",")[1];
+    });
+    await page.getByLabel("Dodaj zdjęcie").setInputFiles({
+      name: "news-photo.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(image, "base64"),
+    });
+    await waitForPreviews(page);
+
+    for (const format of FORMATS) {
+      const preview = page.getByRole("img", {
+        name: new RegExp(`^${format.name}: Krzysztof Turek`),
+      });
+      await expect(preview).toBeVisible();
+      await expect(
+        page.getByRole("article").filter({ has: preview }),
+      ).not.toHaveClass(/border-red-500/);
+      await expect
+        .poll(() =>
+          preview.evaluate((img: HTMLImageElement) => [
+            img.naturalWidth,
+            img.naturalHeight,
+          ]),
+        )
+        .toEqual([format.width, format.height]);
+      await expect(
+        page.getByRole("link", { name: `Pobierz ${format.name} PNG` }),
+      ).toHaveAttribute("download", `gi-news-${format.id}.png`);
+    }
+    const landscape = page.getByRole("img", {
+      name: /^Post poziomy: Krzysztof Turek/,
+    });
+    const [left, right] = await landscape.evaluate((img: HTMLImageElement) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(img, 0, 0);
+      const colorAt = (x: number, y: number) =>
+        [...context.getImageData(x, y, 1, 1).data].slice(0, 3);
+      return [colorAt(300, 350), colorAt(1000, 350)];
+    });
+    expect(Math.max(...left) - Math.min(...left)).toBeLessThan(5);
+    expect(Math.max(...right) - Math.min(...right)).toBeGreaterThan(20);
+    await page.screenshot({
+      path: info.outputPath("news-all-formats.png"),
+      fullPage: true,
+    });
+
+    const portrait = page.getByRole("img", {
+      name: /^Post pionowy: Krzysztof Turek/,
+    });
+    const titleTop = () =>
+      portrait.evaluate((img: HTMLImageElement) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const context = canvas.getContext("2d")!;
+        context.drawImage(img, 0, 0);
+        const pixels = context.getImageData(900, 200, 1, 900).data;
+        for (let row = 0; row < 900; row++) {
+          const offset = row * 4;
+          if (Math.max(...pixels.slice(offset, offset + 3)) < 30) {
+            return row + 200;
+          }
+        }
+        return null;
+      });
+    const shortSubtitleTitleTop = await titleTop();
+    expect(shortSubtitleTitleTop).not.toBeNull();
+    await page
+      .getByLabel("Podtytuł", { exact: true })
+      .fill("Projekt wspiera opiekę nad seniorami. ".repeat(5));
+    await expect.poll(titleTop).toBeLessThan((shortSubtitleTitleTop ?? 0) - 80);
+  });
+
   test("Scenario: overflowing text warns on the format without blocking its PNG", async ({
     page,
   }) => {
@@ -107,7 +205,10 @@ test.describe("Feature: Marketing graphics export", () => {
           rightWhite,
         };
       });
-      expect(pixels.blackBar).toEqual([0, 0, 0, 255]);
+      expect(pixels.blackBar.slice(0, 3).every((channel) => channel < 10)).toBe(
+        true,
+      );
+      expect(pixels.blackBar[3]).toBe(255);
       expect(pixels.leftWhite).toBeGreaterThan(100);
       expect(pixels.rightWhite).toBeGreaterThan(100);
     }

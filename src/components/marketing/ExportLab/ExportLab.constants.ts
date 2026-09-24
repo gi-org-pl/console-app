@@ -1,4 +1,5 @@
 import type { GraphicFormat, GraphicTemplate } from "./ExportLab.types";
+import { NEWS_TEMPLATE } from "./templates/NewsTemplate/NewsTemplate.constants";
 import { STANDARD_TEMPLATE } from "./templates/StandardTemplate/StandardTemplate.constants";
 
 export const GRAPHIC_FORMATS: readonly GraphicFormat[] = [
@@ -35,6 +36,7 @@ export const GRAPHIC_FORMATS: readonly GraphicFormat[] = [
 /** Adding a template: create its folder under `templates/` and list it here. */
 export const GRAPHIC_TEMPLATES: readonly GraphicTemplate[] = [
   STANDARD_TEMPLATE,
+  NEWS_TEMPLATE,
 ];
 
 export const PHOTO_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];

@@ -5,24 +5,6 @@ import { rasterizeGraphic } from "./utils/rasterizeGraphic";
 
 vi.mock("./utils/loadGraphicFonts", () => ({ loadGraphicFonts: vi.fn() }));
 vi.mock("./utils/rasterizeGraphic", () => ({ rasterizeGraphic: vi.fn() }));
-// A second template, so switching is covered while only "Standard" ships.
-vi.mock("./ExportLab.constants", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("./ExportLab.constants")>();
-  const [standard] = original.GRAPHIC_TEMPLATES;
-  return {
-    ...original,
-    GRAPHIC_TEMPLATES: [
-      standard,
-      {
-        ...standard,
-        id: "plain",
-        name: "Prosty",
-        fields: standard.fields.filter((field) => field.id === "title"),
-      },
-    ],
-  };
-});
 
 describe("<ExportLab />", () => {
   beforeEach(() => {
@@ -61,13 +43,14 @@ describe("<ExportLab />", () => {
       fireEvent.change(screen.getByLabelText("Tytuł"), {
         target: { value: "Mój tytuł" },
       });
-      fireEvent.click(screen.getByRole("radio", { name: "Prosty" }));
-      expect(screen.getByRole("radio", { name: "Prosty" })).toBeChecked();
-      expect(screen.queryByLabelText("Podtytuł")).toBeNull();
+      fireEvent.click(screen.getByRole("radio", { name: "News" }));
+      expect(screen.getByRole("radio", { name: "News" })).toBeChecked();
+      expect(screen.getByLabelText("Osoba (opcjonalnie)")).toBeInTheDocument();
+      expect(screen.getByLabelText("Podtytuł")).toBeInTheDocument();
       expect(screen.getByLabelText("Tytuł")).toHaveValue("Mój tytuł");
       await waitFor(() =>
-        expect(rasterizeGraphic).toHaveBeenLastCalledWith(
-          expect.objectContaining({ id: "plain" }),
+        expect(rasterizeGraphic).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "news" }),
           expect.anything(),
           expect.anything(),
         ),

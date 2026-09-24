@@ -1,17 +1,20 @@
 import type { GraphicTemplate } from "../../ExportLab.types";
-import {
-  TEXT_ALIGN_OPTIONS,
-  TEXT_POSITION_OPTIONS,
-  textSizeOptions,
-} from "../field-options";
+import { textSizeOptions } from "../field-options";
 import { FUNDING_OPTIONS } from "../fundingOptions";
-import StandardTemplate from "./StandardTemplate";
+import NewsTemplate from "./NewsTemplate";
 
-export const STANDARD_TEMPLATE: GraphicTemplate = {
-  id: "standard",
-  name: "Standard",
+export const NEWS_TEMPLATE: GraphicTemplate = {
+  id: "news",
+  name: "News",
   supportsPhoto: true,
   fields: [
+    {
+      kind: "text",
+      id: "personName",
+      label: "Osoba (opcjonalnie)",
+      isMultiline: true,
+      defaultValue: "",
+    },
     {
       kind: "text",
       id: "title",
@@ -22,11 +25,11 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
     },
     {
       kind: "choice",
-      id: "titleSize",
+      id: "newsTitleSize",
       label: "Rozmiar tytułu",
       attachTo: "title",
       options: textSizeOptions([32, 48, 64, 80]),
-      defaultValue: "64",
+      defaultValue: "48",
     },
     {
       kind: "text",
@@ -46,20 +49,6 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
       defaultValue: "40",
     },
     {
-      kind: "choice",
-      id: "position",
-      label: "Położenie tekstu",
-      options: TEXT_POSITION_OPTIONS,
-      defaultValue: "bottom",
-    },
-    {
-      kind: "choice",
-      id: "align",
-      label: "Wyrównanie tekstu",
-      options: TEXT_ALIGN_OPTIONS,
-      defaultValue: "left",
-    },
-    {
       kind: "funding",
       id: "funding",
       label: "Finansowanie",
@@ -67,5 +56,5 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
       defaultValue: "proo",
     },
   ],
-  Component: StandardTemplate,
+  Component: NewsTemplate,
 };

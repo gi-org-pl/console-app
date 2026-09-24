@@ -1,4 +1,4 @@
-import type { FundingOption } from "../../ExportLab.types";
+import type { FundingOption } from "../ExportLab.types";
 
 /** Add future grants here; the picker and the graphic share this catalog. */
 export const FUNDING_OPTIONS: readonly FundingOption[] = [
