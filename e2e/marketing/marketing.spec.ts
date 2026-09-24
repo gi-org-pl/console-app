@@ -19,6 +19,68 @@ const waitForPreviews = (page: Page) =>
   expect(page.getByRole("link", { name: /^Pobierz/ })).toHaveCount(4);
 
 test.describe("Feature: Marketing graphics export", () => {
+  test("Scenario: PROO bar is optional and exported at the top of every format", async ({
+    page,
+  }, info) => {
+    await page.goto("./marketing");
+    await waitForPreviews(page);
+    const noFunding = page.getByRole("radio", { name: "Bez belki" });
+    const proo = page.getByRole("radio", { name: "PROO" });
+    await expect(noFunding).toBeChecked();
+    const square = page.getByRole("img", { name: /^Post kwadratowy:/ });
+    const before = await square.getAttribute("src");
+
+    await choose(page, "PROO");
+    await expect(square).not.toHaveAttribute("src", before!);
+    await waitForPreviews(page);
+
+    for (const format of FORMATS) {
+      const image = page.getByRole("img", {
+        name: new RegExp(`^${format.name}:`),
+      });
+      const pixels = await image.evaluate((img: HTMLImageElement) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const context = canvas.getContext("2d")!;
+        context.drawImage(img, 0, 0);
+        const top = context.getImageData(0, 0, canvas.width, 160).data;
+        let leftWhite = 0;
+        let rightWhite = 0;
+        for (let y = 32; y < 155; y++) {
+          for (let x = 64; x < canvas.width - 64; x++) {
+            const offset = (y * canvas.width + x) * 4;
+            if (
+              top[offset] > 220 &&
+              top[offset + 1] > 220 &&
+              top[offset + 2] > 220
+            ) {
+              if (x < canvas.width / 2) leftWhite++;
+              else rightWhite++;
+            }
+          }
+        }
+        return {
+          blackCorner: Array.from(top.slice(0, 4)),
+          leftWhite,
+          rightWhite,
+        };
+      });
+      expect(pixels.blackCorner).toEqual([0, 0, 0, 255]);
+      expect(pixels.leftWhite).toBeGreaterThan(100);
+      expect(pixels.rightWhite).toBeGreaterThan(100);
+    }
+
+    await page.screenshot({
+      path: info.outputPath("proo-selected.png"),
+      fullPage: true,
+    });
+    const withFunding = await square.getAttribute("src");
+    await choose(page, "Bez belki");
+    await expect(square).not.toHaveAttribute("src", withFunding!);
+    await waitForPreviews(page);
+  });
+
   test("Scenario: exporting every format of the default template", async ({
     page,
   }, info) => {

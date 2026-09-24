@@ -1,4 +1,3 @@
-import { InfoMessage } from "@gi-org-pl/athena";
 import { useMemo, useState } from "react";
 import PageHeading from "../../shared/PageHeading/PageHeading";
 import ContentForm from "./ContentForm/ContentForm";

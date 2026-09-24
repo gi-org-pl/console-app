@@ -5,7 +5,7 @@ export function getFieldError(
   field: TemplateField,
   value: string,
 ): string | undefined {
-  if (field.kind === "choice")
+  if (field.kind === "choice" || field.kind === "funding")
     return field.options.some((option) => option.value === value)
       ? undefined
       : `Wybierz: ${field.label.toLowerCase()}.`;

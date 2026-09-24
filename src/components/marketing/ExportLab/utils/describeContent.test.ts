@@ -2,6 +2,14 @@ import { STANDARD_TEMPLATE } from "../templates/StandardTemplate/StandardTemplat
 import { describeContent } from "./describeContent";
 
 describe("describeContent", () => {
+  it("includes the selected grant in the graphic's text alternative", () => {
+    expect(
+      describeContent(STANDARD_TEMPLATE, {
+        title: "Działamy",
+        funding: "proo",
+      }),
+    ).toBe("Działamy. Finansowanie: PROO.");
+  });
   describe("when texts end with and without punctuation", () => {
     it("joins them into sentences without doubling the punctuation", () => {
       expect(

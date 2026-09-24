@@ -27,6 +27,54 @@ describe("<StandardTemplate />", () => {
     });
   });
 
+  describe("when PROO funding is selected", () => {
+    it("puts both supplied images in a black bar above the text on a square card", () => {
+      const { container } = render(
+        <StandardTemplate
+          values={{ ...values, funding: "proo" }}
+          photo={null}
+          format={square}
+        />,
+      );
+      const banner = container.querySelector('[data-funding-banner="proo"]');
+      expect(banner).toHaveClass("bg-black", "px-16", "py-8");
+      expect(banner?.querySelectorAll("img")).toHaveLength(2);
+      expect(banner?.nextElementSibling).toHaveAttribute("data-fit");
+      expect(container.firstElementChild).toHaveStyle({
+        width: "1080px",
+        height: "1080px",
+      });
+    });
+
+    it("puts the bar at the top of the whole story above its framed card", () => {
+      const { container } = render(
+        <StandardTemplate
+          values={{ ...values, funding: "proo" }}
+          photo={null}
+          format={GRAPHIC_FORMATS[2]}
+        />,
+      );
+      expect(container.firstElementChild?.firstElementChild).toHaveAttribute(
+        "data-funding-banner",
+        "proo",
+      );
+      expect(container.querySelectorAll("[data-funding-banner]")).toHaveLength(
+        1,
+      );
+    });
+
+    it("omits the bar when no funding is selected", () => {
+      const { container } = render(
+        <StandardTemplate
+          values={{ ...values, funding: "none" }}
+          photo={null}
+          format={square}
+        />,
+      );
+      expect(container.querySelector("[data-funding-banner]")).toBeNull();
+    });
+  });
+
   describe("when given texts, sizes and a highlight", () => {
     it("renders them with the highlight in the accent color", () => {
       render(<StandardTemplate values={values} photo={null} format={square} />);

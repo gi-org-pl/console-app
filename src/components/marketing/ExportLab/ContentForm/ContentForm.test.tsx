@@ -49,6 +49,12 @@ describe("<ContentForm />", () => {
         within(layout).getByRole("radiogroup", { name: "Położenie tekstu" }),
       ).toBeInTheDocument();
       expect(
+        within(screen.getByRole("region", { name: "Finansowanie" })).getByRole(
+          "radio",
+          { name: "Bez belki" },
+        ),
+      ).toBeChecked();
+      expect(
         within(screen.getByRole("region", { name: "Tło" })).getByLabelText(
           "Dodaj zdjęcie",
         ),
@@ -119,9 +125,11 @@ describe("<ContentForm />", () => {
       });
       fireEvent.click(screen.getByRole("radio", { name: "Tekst u góry" }));
       fireEvent.click(screen.getByRole("radio", { name: /Mały \(32 px\)/ }));
+      fireEvent.click(screen.getByRole("radio", { name: "PROO" }));
       expect(onChange).toHaveBeenCalledWith("title", "Nowy");
       expect(onChange).toHaveBeenCalledWith("position", "top");
       expect(onChange).toHaveBeenCalledWith("titleSize", "32");
+      expect(onChange).toHaveBeenCalledWith("funding", "proo");
     });
   });
 

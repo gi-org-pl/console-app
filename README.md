@@ -32,6 +32,7 @@ Standardy front-endu GI są w [CLAUDE.md](CLAUDE.md).
 
 - **Nowy moduł Console:** dopisz wpis do `CONSOLE_MODULES` w `src/constants/console.ts`, dodaj widok w `src/components/<domena>/` i cienki plik w `src/pages/`.
 - **Nowy szablon grafiki (Marketing):** utwórz folder `src/components/marketing/ExportLab/templates/<Nazwa>Template/` z komponentem (HTML + Tailwind, rysowany w pikselach formatu) oraz plikiem `.constants.ts` (nazwa, pola, limity, obsługa zdjęcia). Dopisz go do `GRAPHIC_TEMPLATES` w `ExportLab.constants.ts`. Pojemniki, które nie mogą się przepełnić, oznacz atrybutem `data-fit`; eksport zablokuje wtedy przyciętą treść.
+- **Nowy grant dla szablonu Standard:** dodaj jego dwa obrazy do `public/grants/` i wpis w `src/components/marketing/ExportLab/templates/StandardTemplate/fundingOptions.ts`. Wybór w formularzu i belka w eksporcie korzystają z tego samego katalogu; wartość `none` oznacza brak belki.
 
 PNG powstaje przez rasteryzację wyrenderowanego szablonu (`modern-screenshot`); podgląd jest dokładnie pobieranym plikiem.
 

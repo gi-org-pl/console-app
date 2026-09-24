@@ -22,6 +22,7 @@ describe("getDefaultFieldValues", () => {
         subtitleSize: "24",
         position: "bottom",
         align: "left",
+        funding: "none",
       });
     });
   });

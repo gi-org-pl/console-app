@@ -25,8 +25,25 @@ const freeText: TemplateField = {
   label: "Podtytuł",
   defaultValue: "",
 };
+const funding: TemplateField = {
+  kind: "funding",
+  id: "funding",
+  label: "Finansowanie",
+  options: [
+    { value: "none", label: "Bez belki" },
+    { value: "proo", label: "PROO" },
+  ],
+  defaultValue: "none",
+};
 
 describe("getFieldError", () => {
+  describe("when the funding choice changes", () => {
+    it("accepts only registered funding options", () => {
+      expect(getFieldError(funding, "none")).toBeUndefined();
+      expect(getFieldError(funding, "proo")).toBeUndefined();
+      expect(getFieldError(funding, "unknown")).toBe("Wybierz: finansowanie.");
+    });
+  });
   describe("when a choice is one of its options", () => {
     it.each(["top", "bottom"])("accepts %s", (value) => {
       expect(getFieldError(choice, value)).toBeUndefined();

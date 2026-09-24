@@ -2,12 +2,14 @@ import EditorPanel from "../EditorPanel/EditorPanel";
 import type {
   ChoiceTemplateField,
   FieldValues,
+  FundingTemplateField,
   GraphicTemplate,
   PhotoControls,
   PreviewError,
 } from "../ExportLab.types";
 import { getFieldError } from "../utils/getFieldError";
 import ChoiceField from "./ChoiceField/ChoiceField";
+import FundingPicker from "./FundingPicker/FundingPicker";
 import PhotoField from "./PhotoField/PhotoField";
 import TextField from "./TextField/TextField";
 
@@ -26,6 +28,9 @@ const ContentForm = ({ template, values, error, onChange, photo }: Props) => {
     (field): field is ChoiceTemplateField => field.kind === "choice",
   );
   const layoutChoices = choices.filter((field) => !field.attachTo);
+  const fundingFields = template.fields.filter(
+    (field): field is FundingTemplateField => field.kind === "funding",
+  );
   const renderChoice = (field: ChoiceTemplateField) => (
     <ChoiceField
       key={field.id}
@@ -75,6 +80,19 @@ const ContentForm = ({ template, values, error, onChange, photo }: Props) => {
           </div>
         </EditorPanel>
       )}
+      {fundingFields.map((field) => (
+        <EditorPanel
+          key={field.id}
+          titleId={`${field.id}-title`}
+          title={field.label}
+        >
+          <FundingPicker
+            field={field}
+            value={values[field.id] ?? field.defaultValue}
+            onChange={(value) => onChange(field.id, value)}
+          />
+        </EditorPanel>
+      ))}
       {template.supportsPhoto && (
         <EditorPanel titleId="background-title" title="Tło">
           <PhotoField photo={photo} />

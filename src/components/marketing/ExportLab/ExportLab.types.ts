@@ -50,7 +50,22 @@ export interface ChoiceTemplateField extends BaseTemplateField {
   attachTo?: string;
 }
 
-export type TemplateField = TextTemplateField | ChoiceTemplateField;
+export interface FundingOption {
+  value: string;
+  label: string;
+  leftImage?: string;
+  rightImage?: string;
+}
+
+export interface FundingTemplateField extends BaseTemplateField {
+  kind: "funding";
+  options: readonly FundingOption[];
+}
+
+export type TemplateField =
+  | TextTemplateField
+  | ChoiceTemplateField
+  | FundingTemplateField;
 
 export type FieldValues = Record<string, string>;
 

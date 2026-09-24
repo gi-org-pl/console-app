@@ -4,6 +4,7 @@ import {
   TEXT_POSITION_OPTIONS,
   textSizeOptions,
 } from "../field-options";
+import { FUNDING_OPTIONS } from "./fundingOptions";
 import StandardTemplate from "./StandardTemplate";
 
 export const STANDARD_TEMPLATE: GraphicTemplate = {
@@ -57,6 +58,13 @@ export const STANDARD_TEMPLATE: GraphicTemplate = {
       label: "Wyrównanie tekstu",
       options: TEXT_ALIGN_OPTIONS,
       defaultValue: "left",
+    },
+    {
+      kind: "funding",
+      id: "funding",
+      label: "Finansowanie",
+      options: FUNDING_OPTIONS,
+      defaultValue: "none",
     },
   ],
   Component: StandardTemplate,

@@ -4,12 +4,15 @@ import footerText from "../../../../../../assets/icons/footer-text.svg";
 import type { GraphicContent } from "../../../ExportLab.types";
 import { stripHighlights } from "../../../utils/tokenizeHighlights";
 import HighlightedText from "../../HighlightedText/HighlightedText";
+import FundingBanner from "../FundingBanner/FundingBanner";
+import type { getFundingGrant } from "../fundingOptions";
 import { getStandardBackground } from "../utils/getStandardBackground";
 
 interface Props extends GraphicContent {
   width: number;
   height: number;
   className?: string;
+  funding?: NonNullable<ReturnType<typeof getFundingGrant>>;
 }
 
 // Safe alignment falls back to the top when text overflows, so the fit check sees it.
@@ -28,7 +31,14 @@ const TEXT_ALIGN_CLASS_NAME: Record<string, string> = {
 const hasText = (value?: string) => !!value && !!stripHighlights(value).trim();
 
 /** The standard GI composition: background or photo, text and the footer. */
-const StandardCard = ({ values, photo, width, height, className }: Props) => (
+const StandardCard = ({
+  values,
+  photo,
+  width,
+  height,
+  className,
+  funding,
+}: Props) => (
   <div
     className={twMerge(
       "relative flex flex-col overflow-hidden bg-app-bg text-app-text",
@@ -53,6 +63,7 @@ const StandardCard = ({ values, photo, width, height, className }: Props) => (
         <div className="absolute inset-0 bg-linear-to-b from-black/50 to-black" />
       </>
     )}
+    {funding && <FundingBanner grant={funding} />}
     <div
       data-fit
       className={twMerge(
