@@ -2,6 +2,7 @@
   "name": "gi-console",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "yarn@1.22.22",
   "type": "module",
   "license": "proprietary",
   "main": "index.js",
@@ -78,7 +79,7 @@
   },
   "engines": {
     "node": ">=24",
-    "yarn": ">=1.22"
+    "yarn": ">=1.22 <2"
   },
   "eslintConfig": {
     "extends": [

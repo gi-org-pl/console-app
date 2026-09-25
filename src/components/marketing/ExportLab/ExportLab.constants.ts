@@ -46,3 +46,5 @@ export const PHOTO_MAX_EDGE = 2160;
 /** Displayed size in px of the template thumbnails. */
 export const THUMBNAIL_SIZE = 72;
 export const THUMBNAIL_DEBOUNCE_MS = 600;
+/** Wait for a short pause in typing before rasterizing all four full-size previews. */
+export const PREVIEW_DEBOUNCE_MS = 200;

@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { PREVIEW_DEBOUNCE_MS } from "../ExportLab.constants";
 import { STANDARD_TEMPLATE } from "../templates/StandardTemplate/StandardTemplate.constants";
 import { getDefaultFieldValues } from "./getDefaultFieldValues";
 import { loadGraphicFonts } from "./loadGraphicFonts";
@@ -105,6 +106,31 @@ describe("useGraphicPreviews", () => {
   });
 
   describe("when the content changes while rendering", () => {
+    it("renders only the latest value after rapid edits", async () => {
+      const { result, rerender } = renderHook(
+        ({ content }) => useGraphicPreviews(STANDARD_TEMPLATE, content),
+        { initialProps: { content: validContent } },
+      );
+      rerender({
+        content: {
+          ...validContent,
+          values: { ...validContent.values, title: "Pierwsza wersja" },
+        },
+      });
+      const latest = {
+        ...validContent,
+        values: { ...validContent.values, title: "Ostateczna wersja" },
+      };
+      rerender({ content: latest });
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      expect(rasterizeGraphic).toHaveBeenCalledTimes(4);
+      expect(rasterizeGraphic).toHaveBeenCalledWith(
+        STANDARD_TEMPLATE,
+        latest,
+        expect.anything(),
+      );
+    });
+
     it("drops the stale result and revokes its URLs", async () => {
       const { result, rerender } = renderHook(
         ({ content }) => useGraphicPreviews(STANDARD_TEMPLATE, content),
@@ -130,9 +156,13 @@ describe("useGraphicPreviews", () => {
       );
       await waitFor(() => expect(rasterizeGraphic).toHaveBeenCalled());
       rerender({ content: { ...validContent } });
-      await waitFor(() => expect(result.current.status).toBe("ready"));
+      await new Promise((resolve) =>
+        setTimeout(resolve, PREVIEW_DEBOUNCE_MS + 20),
+      );
+      expect(rasterizeGraphic).toHaveBeenCalledTimes(1);
       failStale(new Error("stale"));
-      await Promise.resolve();
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      expect(rasterizeGraphic).toHaveBeenCalledTimes(5);
       expect(result.current.status).toBe("ready");
     });
 
@@ -149,9 +179,13 @@ describe("useGraphicPreviews", () => {
       );
       await waitFor(() => expect(rasterizeGraphic).toHaveBeenCalled());
       rerender({ content: { ...validContent } });
-      await waitFor(() => expect(result.current.status).toBe("ready"));
+      await new Promise((resolve) =>
+        setTimeout(resolve, PREVIEW_DEBOUNCE_MS + 20),
+      );
+      expect(rasterizeGraphic).toHaveBeenCalledTimes(1);
       finishStale({ blob: new Blob(["stale"]), hasOverflow: false });
-      await Promise.resolve();
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+      expect(rasterizeGraphic).toHaveBeenCalledTimes(5);
       expect(result.current.previews).toHaveLength(4);
     });
   });

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { GRAPHIC_FORMATS } from "../ExportLab.constants";
+import { useEffect, useRef, useState } from "react";
+import { GRAPHIC_FORMATS, PREVIEW_DEBOUNCE_MS } from "../ExportLab.constants";
 import type {
   GraphicContent,
   GraphicTemplate,
@@ -22,6 +22,7 @@ export function useGraphicPreviews(
   content: GraphicContent,
 ): PreviewsState {
   const [state, setState] = useState<PreviewsState>(RENDERING_STATE);
+  const renderQueue = useRef(Promise.resolve());
 
   useEffect(() => {
     let isCancelled = false;
@@ -32,9 +33,11 @@ export function useGraphicPreviews(
       try {
         validateContent(template, content.values);
         await loadGraphicFonts();
+        if (isCancelled) return;
         const previews: Preview[] = [];
         // Sequential rendering bounds peak memory on phones.
         for (const format of GRAPHIC_FORMATS) {
+          if (isCancelled) return;
           const { blob, hasOverflow } = await rasterizeGraphic(
             template,
             content,
@@ -70,9 +73,16 @@ export function useGraphicPreviews(
       }
     }
 
-    void prepare();
+    // A changed draft waits briefly; an already running rasterization finishes
+    // before the latest draft starts, so edits cannot spawn concurrent exports.
+    const timer = window.setTimeout(() => {
+      renderQueue.current = renderQueue.current.then(() => {
+        if (!isCancelled) return prepare();
+      });
+    }, PREVIEW_DEBOUNCE_MS);
     return () => {
       isCancelled = true;
+      clearTimeout(timer);
       for (const url of urls) URL.revokeObjectURL(url);
     };
   }, [template, content]);
