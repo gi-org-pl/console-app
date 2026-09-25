@@ -1,182 +1,64 @@
-# Vite Project Boilerplate
+# Console
 
-## Repository contents
+A shared shell for Generacja Innowacja's internal tools. It currently ships one module, **Marketing**, a browser-based graphics export lab. There are no accounts, backend or database. Demo content is not stored anywhere; a page refresh resets it.
 
-Repository contains boilerplate project using Vite.
+The UI copy is in Polish because the app is built for the foundation's team. Code, comments and docs are in English.
 
-Project is using tools in versions listed below:
+## Getting started
 
-| Technology | Version |
-| ---------- | ------- |
-| Node.js    | ^24.x   |
-| TypeScript | ^5.9    |
-| Yarn       | ^1.22   |
+Requires Node.js 24+ and Yarn 1.22 (e.g. via Corepack).
 
-Project's main dependencies are listed below.
-
-| Dependency   | Version |
-| -------      | ------- |
-| Vite         | ^7.2    |
-| React        | ^19.x   |
-| Tailwind CSS | ^4.x    |
-| Vitest       | ^4.x    |
-| Playwright   | ^1.x    |
-| Zod          | ^4.x    |
-| Axios        | ^1.x    |
-| Zustand      | ^5.x    |
-| Storybook    | ^10.x   |
-| @gi-org-pl/athena | ^1.x |
-
-### Package descriptions
-
-- **Vite** - Next-generation frontend build tool providing fast development experience with instant HMR and optimized production builds
-- **React** - JavaScript library for building user interfaces
-- **Tailwind CSS** - Utility-first CSS framework for rapid UI development
-- **Zod** - TypeScript-first schema validation library for runtime type checking
-- **Axios** - Promise-based HTTP client for making API requests
-- **Vitest** - Fast unit testing framework powered by Vite
-- **Playwright** - End-to-end testing framework for reliable cross-browser testing
-- **Zustand** - Lightweight state management library for React applications
-- **Storybook** - UI development environment and playground for building, previewing, and testing isolated components interactively
-- **[@gi-org-pl/athena](https://www.npmjs.com/package/@gi-org-pl/athena)** - Our front-end component package, published to npm. You can [modify it here](https://github.com/gi-org-pl/athena)
-
-## Infrastructure
-
-This is a frontend-only boilerplate that runs locally using Vite development server.
-
-## Setting project up
-
-This app uses Node.js and Yarn package manager. In order to set up project, follow these steps:
-
-1. Install Node.js (v24.x or higher):
-   - Download from [nodejs.org](https://nodejs.org/)
-   - Use a version manager like [nvm](https://github.com/nvm-sh/nvm)
-
-2. Install Yarn globally:
-
-   ```shell
-   npm install --global yarn@^1.22
-   ```
-
-3. Clone project by running:
-
-   ```shell
-   git clone <your-repository-url>
-   ```
-
-4. Navigate to the project directory:
-
-   ```shell
-   cd vite-project-boilerplate
-   ```
-
-5. Install dependencies using Yarn:
-
-   ```shell
-   yarn install
-   ```
-
-## Running the project
-
-To start the development server:
-
-```bash
+```sh
+corepack enable
+yarn install --frozen-lockfile
 yarn dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
+## Checks
 
-## Available scripts
-
-```bash
-yarn dev              # Start development server
-yarn build            # Build for production
-yarn preview          # Start production server (after build)
-yarn test             # Run unit tests with Vitest
-yarn test:coverage    # Run tests with coverage report
-yarn e2e              # Run end-to-end tests with Playwright
-yarn e2e:ui           # Run Playwright tests in UI mode
-yarn lint             # Run Biome linter
-yarn lint:fix         # Fix linting issues automatically
-yarn storybook        # Run Storybook in development mode
-yarn storybook:build  # Build Storybook for production
+```sh
+yarn typecheck
+yarn lint
+yarn test:coverage
+yarn build
+yarn playwright install chromium firefox webkit
+yarn e2e
+yarn preview --host 127.0.0.1 --port 4173
 ```
 
-## Build
+Playwright serves the **previously built** app through `vite preview`, so run `yarn build` again after changing code. The e2e suite covers Chromium, Firefox, WebKit and a mobile WebKit profile. Reports, exported PNGs and screenshots are written to `playwright-report/` and `test-results/`.
 
-This project uses Vite and React Router for building and serving the application. The build process generates optimized static assets for production deployment.
+Front-end standards live in [CLAUDE.md](CLAUDE.md).
 
-Build the project with `yarn build` and preview the production build locally with `yarn preview`.
+## Extending Console
 
-## Testing
+- **New Console module:** add an entry to `CONSOLE_MODULES` in `src/constants/console.ts`, put the view in `src/components/<domain>/` and add a thin route file in `src/pages/`. The module then appears in the sidebar and on the dashboard.
+- **New graphic template (Marketing):** create `src/components/marketing/ExportLab/templates/<Name>Template/` with the component (HTML + Tailwind, laid out in the format's pixels) and a `.constants.ts` file describing its name, fields, limits and photo support. Register it in `GRAPHIC_TEMPLATES` in `ExportLab.constants.ts`. Mark containers with `data-fit` to show a red warning on formats where text may be clipped; export remains available.
+- **New funding grant:** add its two images to `public/grants/` and an entry to `src/components/marketing/ExportLab/templates/fundingOptions.ts`. Standard and News share this list; the `none` value means no banner.
 
-This boilerplate includes both unit testing and end-to-end testing:
+PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 
-- **Unit Tests**: Uses Vitest with React Testing Library for component and utility testing
-- **E2E Tests**: Uses Playwright for browser-based end-to-end testing
+## Dependencies pending Technical Leader approval
 
-Run tests with:
+On top of the stack in CLAUDE.md §1, the project adds `@fortawesome/*` (solid icons) and `modern-screenshot` (HTML template to PNG export). Both need TL approval.
 
-```bash
-yarn test              # Run unit tests
-yarn test:coverage     # Run tests with coverage
-yarn e2e               # Run E2E tests
-yarn e2e:ui            # Run E2E tests in UI mode
-```
+## Hosting
 
-## Linting
+`yarn build` outputs a static site in **build/client**; no Node server is needed. CI publishes the build artifact and test reports.
 
-This boilerplate uses BiomeJS for code linting and formatting. Biome is a fast, all-in-one toolchain that replaces ESLint, Prettier, and other tools.
+The app is hosted on **GitHub Pages**. The `deploy-pages.yml` workflow tests the app and publishes the `main` branch to `https://gi-org-pl.github.io/console-app/`. In the Pages settings, the source must be GitHub Actions and the `github-pages` environment must allow `main`.
 
-- **Linter**: BiomeJS provides fast linting with TypeScript support
-- **Formatter**: Built-in code formatter with consistent style
-- **Import Organization**: Automatic import sorting and organization
+The Pages build uses `CONSOLE_BASE_PATH=/console-app/`. `scripts/preparePages.mjs` copies the prerendered HTML to the artifact root, because Pages itself mounts the site under the repository name. Static routes are prerendered, so `/marketing/` also works after a refresh without a server-side fallback.
 
-Run linting with:
+To serve the app from `console.gi.org.pl`:
 
-```bash
-yarn lint              # Check for linting issues
-yarn lint:fix          # Automatically fix linting and formatting issues
-```
+1. Add a DNS CNAME record `console` → `gi-org-pl.github.io`. DNS is managed outside this repository.
+2. Set the custom domain in the Pages settings.
+3. Set the repository variables `PAGES_BASE_PATH=/` and `PAGES_CUSTOM_DOMAIN=console.gi.org.pl`.
+4. Re-run the deploy and enable "Enforce HTTPS" once the certificate is issued.
 
-The project is configured with custom linting rules in `biome.json`, including complexity checks, style rules, and correctness validations for TypeScript files.
+Before sharing a deploy, check `/`, a direct visit to `/marketing`, a page refresh, no horizontal scrolling, locally served fonts, and download/share on a phone. The app is intentionally public for now; restricting it to the team requires a real SSO gate before any internal rollout.
 
-## Visual testing
+## Brand assets
 
-This boilerplate uses Storybook for visual testing and component development. Storybook provides an isolated environment to develop, test, and document UI components independently.
-
-- **Component Development**: Build and test components in isolation
-- **Visual Testing**: Preview components with different props and states
-- **Documentation**: Auto-generate component documentation from stories
-- **Addons**: Includes accessibility, docs, and Vitest integration addons
-
-Run Storybook with:
-
-```bash
-yarn storybook        # Start Storybook development server (http://localhost:6006)
-yarn storybook:build  # Build Storybook for production deployment
-```
-
-## Working with Athena
-
-`@gi-org-pl/athena` exports all ours reusable components. If you need new reusable component, please update athena package instead of creating a new component in the project. Create new components in the project only if they will be used only in this specific project.
-
-Athena is installed from npm like any other dependency, no token or `.npmrc` needed. Its styles are loaded in `src/index.css` with `@import "@gi-org-pl/athena/athena.css";`, which also imports Tailwind CSS and Athena's theme.
-
-A new Athena version is published automatically after each merge to Athena's `main` (see [releases](https://github.com/gi-org-pl/athena/releases)). To use it:
-
-```bash
-yarn upgrade @gi-org-pl/athena --latest
-```
-
-## Resources
-
-- [Vite Documentation](https://vite.dev/) - Vite build tool documentation
-- [React Router Documentation](https://reactrouter.com/) - React Router framework documentation
-- [React Documentation](https://react.dev/reference/react) - React.js reference
-- [Learn React](https://react.dev/learn) - an interactive React.js tutorial
-- [Tailwind CSS Documentation](https://tailwindcss.com/) - Tailwind CSS documentation
-- [Vitest Documentation](https://vitest.dev/) - Vitest testing framework documentation
-- [Playwright Documentation](https://playwright.dev/) - Playwright E2E testing documentation
-- [BiomeJS Documentation](https://biomejs.dev/) - BiomeJS linter and formatter documentation
-- [Storybook Documentation](https://storybook.js.org/) - Storybook component development and visual testing documentation
+Poppins and Roboto are bundled locally in `public/fonts`, together with their OFL licenses. The app logo (`src/assets/icons/console-logo.svg`) and avatar (`src/assets/images/avatar.png`) were provided by the team.

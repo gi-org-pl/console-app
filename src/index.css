@@ -1,6 +1,127 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
 @import "@gi-org-pl/athena/athena.css";
 
+@font-face {
+  font-family: Poppins;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/poppins-medium.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Poppins;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/poppins-semibold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Poppins;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/poppins-bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/roboto.ttf") format("truetype");
+}
+
+/* Console is dark-only, following gi.org.pl. Theme color: rgb(193, 22, 22). */
+@theme {
+  --color-app-bg: #000;
+  --color-app-surface: #0c0c0c;
+  --color-app-surface-2: #161616;
+  --color-app-art: #1a0606;
+  --color-app-border: rgb(255 255 255 / 10%);
+  --color-app-border-strong: rgb(255 255 255 / 20%);
+  --color-app-hover: rgb(255 255 255 / 5%);
+  --color-app-active: rgb(255 255 255 / 10%);
+  --color-app-text: #fff;
+  --color-app-muted: rgb(255 255 255 / 64%);
+  --color-app-subtle: rgb(255 255 255 / 45%);
+  --color-app-accent: #c11616;
+  --color-app-accent-hover: #a31212;
+  --color-app-accent-text: #ef5b5b;
+  --color-app-focus: #e23b3b;
+  --color-app-error: #ff7b7b;
+
+  --font-sans: "Roboto", sans-serif;
+  --font-display: "Poppins", sans-serif;
+
+  --breakpoint-tablet: 56.25rem;
+  --breakpoint-desktop: 71.875rem;
+  --breakpoint-wide: 100rem;
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+}
+
+/* Athena components read these variables, so they are remapped for the dark theme. */
 :root {
-  --font-family: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+  --background: var(--color-app-bg);
+  --foreground: var(--color-app-text);
+  --card: var(--color-app-surface);
+  --popover: var(--color-app-surface-2);
+  --border: var(--color-app-border);
+  --input: rgb(255 255 255 / 15%);
+  --gi-dark-primary: oklch(0.985 0 0);
+  --gi-primary: oklch(0.97 0 0);
+  --gi-primary-hover: oklch(0.86 0 0);
+  --gi-light-primary: oklch(0.92 0 0);
+  --gi-secondary: var(--color-app-accent);
+  --gi-secondary-hover: var(--color-app-accent-hover);
+  --gi-dark-gray: oklch(0.8 0.01 213);
+  --gi-gray: oklch(0.68 0.01 213);
+  --gi-gray-hover: oklch(0.58 0.01 213);
+  --gi-ash: rgb(255 255 255 / 10%);
+  --gi-ash-hover: rgb(255 255 255 / 16%);
+  --gi-dark-ash: oklch(0.3 0 0);
+  --gi-light-gray: oklch(0.2 0 0);
+  --gi-light-gray-dark: oklch(0.26 0 0);
+  --gi-navy: oklch(0.92 0 0);
+  --gi-navy-hover: oklch(0.82 0 0);
+  --gi-blue: var(--color-app-accent-text);
+  --gi-blue-hover: var(--color-app-accent);
+  --gi-blue-lightest: #2a0909;
+  --gi-red: oklch(0.7 0.18 25);
+  --gi-red-hover: oklch(0.62 0.19 25);
+}
+
+@layer base {
+  body {
+    @apply bg-app-bg font-sans text-app-text;
+  }
+
+  :focus-visible {
+    @apply outline-3 outline-offset-4 outline-app-focus;
+  }
+}
+
+/* Athena hardcodes a white input surface and shares one token between
+   primary text and primary fills; these are the only overrides it needs. */
+.bg-white {
+  @apply bg-app-surface-2;
+}
+
+.bg-gi-primary {
+  @apply bg-app-accent;
+}
+
+.hover\:bg-gi-primary-hover:hover {
+  @apply bg-app-accent-hover;
 }
