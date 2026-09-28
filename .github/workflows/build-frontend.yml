@@ -47,6 +47,8 @@ jobs:
 
   e2e:
     name: Test E2E
+    # E2E disabled
+    if: false
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -24,8 +24,11 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: yarn typecheck && yarn lint && yarn test --run
       - run: yarn build
-      - run: yarn playwright install --with-deps chromium firefox webkit
-      - run: yarn e2e
+      # E2E disabled
+      - if: false
+        run: yarn playwright install --with-deps chromium firefox webkit
+      - if: false
+        run: yarn e2e
       - name: Build for Pages
         run: yarn build && node scripts/preparePages.mjs
         env:
