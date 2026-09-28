@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useBufferSessionStore } from "../../../services/buffer/utils/useBufferSession";
 import ExportLab from "./ExportLab";
 import { loadGraphicFonts } from "./utils/loadGraphicFonts";
 import { rasterizeGraphic } from "./utils/rasterizeGraphic";
@@ -76,6 +77,19 @@ describe("<ExportLab />", () => {
         ),
       );
       expect(screen.queryByRole("alert")).toBeNull();
+    });
+  });
+
+  describe("when opened by someone who is not logged in", () => {
+    it("shows the publishing section under the generator with a log in", () => {
+      useBufferSessionStore.setState({ status: "disconnected", session: null });
+      render(<ExportLab />);
+      expect(
+        screen.getByRole("heading", { level: 2, name: "Publikacja." }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Zaloguj się" }),
+      ).toBeInTheDocument();
     });
   });
 });

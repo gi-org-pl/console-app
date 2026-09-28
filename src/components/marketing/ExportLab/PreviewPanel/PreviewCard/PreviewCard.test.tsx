@@ -15,8 +15,6 @@ const baseProps = {
   description: "Tytuł",
   isRendering: false,
   areActionsDisabled: false,
-  canShare: false,
-  onShare: vi.fn(),
 };
 
 const shimmer = () => screen.getByTestId("shimmer");
@@ -38,12 +36,7 @@ describe("<PreviewCard />", () => {
   describe("when the graphic is rendering for the first time", () => {
     it("shimmers a box in the format's proportions with disabled actions", () => {
       const { container } = render(
-        <PreviewCard
-          {...baseProps}
-          format={GRAPHIC_FORMATS[3]}
-          canShare
-          isRendering
-        />,
+        <PreviewCard {...baseProps} format={GRAPHIC_FORMATS[3]} isRendering />,
       );
       expect(shimmer()).toHaveClass("opacity-100");
       expect(shimmer().parentElement).toHaveStyle({
@@ -60,7 +53,6 @@ describe("<PreviewCard />", () => {
         "aria-disabled",
         "true",
       );
-      expect(screen.getByRole("button", { name: /Udostępnij/ })).toBeDisabled();
     });
   });
 
@@ -136,7 +128,7 @@ describe("<PreviewCard />", () => {
   });
 
   describe("when the preview is ready", () => {
-    it("offers a named icon download and no share without support", () => {
+    it("offers a named icon download and nothing else", () => {
       render(<PreviewCard {...baseProps} preview={preview} />);
       expect(
         screen.getByRole("link", { name: "Pobierz Post kwadratowy PNG" }),
@@ -164,41 +156,13 @@ describe("<PreviewCard />", () => {
     });
   });
 
-  describe("when sharing is available", () => {
-    it("shares the prepared file", () => {
-      const onShare = vi.fn();
-      render(
-        <PreviewCard
-          {...baseProps}
-          preview={preview}
-          canShare
-          onShare={onShare}
-        />,
-      );
-      fireEvent.click(
-        screen.getByRole("button", { name: "Udostępnij Post kwadratowy" }),
-      );
-      expect(onShare).toHaveBeenCalledWith(preview.file);
-    });
-  });
-
   describe("when actions are disabled while a photo loads", () => {
-    it("keeps the buttons in place but disabled", () => {
-      const onShare = vi.fn();
+    it("keeps the download in place but disabled", () => {
       render(
-        <PreviewCard
-          {...baseProps}
-          preview={preview}
-          canShare
-          areActionsDisabled
-          onShare={onShare}
-        />,
+        <PreviewCard {...baseProps} preview={preview} areActionsDisabled />,
       );
       expect(downloadLink()).not.toHaveAttribute("href");
-      const share = screen.getByRole("button", { name: /Udostępnij/ });
-      expect(share).toBeDisabled();
-      fireEvent.click(share);
-      expect(onShare).not.toHaveBeenCalled();
+      expect(downloadLink()).toHaveAttribute("aria-disabled", "true");
     });
   });
 });

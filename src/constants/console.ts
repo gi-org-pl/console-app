@@ -7,7 +7,7 @@ export const CONSOLE_MODULES: readonly ConsoleModule[] = [
     name: "Marketing",
     path: "/marketing",
     description:
-      "Od pomysłu do grafiki. Przygotuj spójny przekaz w formatach dopasowanych do social mediów.",
+      "Od pomysłu do publikacji. Przygotuj grafikę w formatach social mediów i opublikuj ją na kanałach fundacji.",
     category: "Komunikacja",
     icon: faBullhorn,
   },

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { stubBufferWorker } from "../bufferWorker";
 
 test.describe("Feature: Console dashboard", () => {
   test("Scenario: a team member opens a module from the dashboard", async ({
@@ -6,6 +7,7 @@ test.describe("Feature: Console dashboard", () => {
   }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    await stubBufferWorker(page);
 
     await test.step("Given the user is on the dashboard", async () => {
       await page.goto("./");

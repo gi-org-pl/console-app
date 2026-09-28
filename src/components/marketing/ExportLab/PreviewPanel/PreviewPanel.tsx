@@ -1,9 +1,7 @@
 import { Badge, InfoMessage } from "@gi-org-pl/athena";
-import { useEffect, useState } from "react";
 import SectionHeading from "../../../shared/SectionHeading/SectionHeading";
 import { GRAPHIC_FORMATS } from "../ExportLab.constants";
 import type { PreviewsState } from "../ExportLab.types";
-import { canShareFiles } from "../utils/canShareFiles";
 import PreviewCard from "./PreviewCard/PreviewCard";
 import { STATUS_BADGE_LABEL } from "./PreviewPanel.constants";
 
@@ -15,17 +13,6 @@ interface Props {
 }
 
 const PreviewPanel = ({ state, description, isPhotoLoading }: Props) => {
-  // Probed after mount: the page is prerendered, where `navigator` does not exist.
-  const [canShare, setCanShare] = useState(false);
-  useEffect(() => setCanShare(canShareFiles()), []);
-
-  async function share(file: File) {
-    try {
-      // File is prepared before the tap: iOS requires a live user activation.
-      await navigator.share({ files: [file] });
-    } catch {}
-  }
-
   return (
     <section
       className="min-w-0"
@@ -62,8 +49,6 @@ const PreviewPanel = ({ state, description, isPhotoLoading }: Props) => {
             description={description}
             isRendering={state.status === "rendering"}
             areActionsDisabled={isPhotoLoading}
-            canShare={canShare}
-            onShare={(file) => void share(file)}
           />
         ))}
       </div>

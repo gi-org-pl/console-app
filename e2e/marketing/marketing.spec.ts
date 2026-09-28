@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import { MEDIA_ID, stubBufferWorker } from "../bufferWorker";
 
 const FORMATS = [
   { name: "Post kwadratowy", id: "square", width: 1080, height: 1080 },
@@ -19,6 +20,10 @@ const waitForPreviews = (page: Page) =>
   expect(page.getByRole("link", { name: /^Pobierz/ })).toHaveCount(4);
 
 test.describe("Feature: Marketing graphics export", () => {
+  test.beforeEach(async ({ page }) => {
+    await stubBufferWorker(page);
+  });
+
   test("Scenario: News exports the same content in every format", async ({
     page,
   }, info) => {
@@ -382,51 +387,65 @@ test.describe("Feature: Marketing graphics export", () => {
     });
   });
 
-  test("Scenario: sharing a prepared graphic from a phone", async ({
+  test("Scenario: publishing the graphic to Buffer channels", async ({
     page,
   }) => {
-    await test.step("Given the device supports sharing files", async () => {
-      await page.addInitScript(() => {
-        Object.defineProperty(navigator, "canShare", {
-          value: () => true,
-          configurable: true,
+    const worker = await stubBufferWorker(page, { isLoggedIn: true });
+
+    await test.step("Given the operator is logged in and the graphic is ready", async () => {
+      await page.goto("./marketing");
+      await waitForPreviews(page);
+      await expect(
+        page.getByText("marketing@gi.org.pl").filter({ visible: true }).first(),
+      ).toBeVisible();
+    });
+
+    await test.step("When they pick both channels, write a caption and publish now", async () => {
+      await page.getByRole("button", { name: "Zaznacz wszystkie" }).click();
+      await page
+        .getByLabel("Treść", { exact: true })
+        .fill("Nowa grafika dla naszej społeczności!");
+      await choose(page, "Teraz");
+      await page.getByRole("button", { name: "Opublikuj teraz" }).click();
+    });
+
+    await test.step("Then each channel gets one post with the uploaded image", async () => {
+      await expect(
+        page.getByRole("heading", { name: "Opublikowano" }),
+      ).toBeVisible();
+      expect(worker.uploadCount()).toBe(1);
+      expect(worker.posts).toHaveLength(2);
+      for (const post of worker.posts) {
+        expect(post).toMatchObject({
+          mediaId: MEDIA_ID,
+          text: "Nowa grafika dla naszej społeczności!",
+          mode: "shareNow",
         });
-        Object.defineProperty(navigator, "share", {
-          value: async (data: ShareData) => {
-            const file = data.files?.[0];
-            document.documentElement.dataset.shared = JSON.stringify({
-              name: file?.name,
-              type: file?.type,
-              size: file?.size,
-              isActive: navigator.userActivation.isActive,
-            });
-          },
-          configurable: true,
-        });
-      });
+      }
+    });
+  });
+
+  test("Scenario: a visitor downloads graphics without logging in", async ({
+    page,
+  }) => {
+    await test.step("Given the visitor is not logged in", async () => {
       await page.goto("./marketing");
       await waitForPreviews(page);
     });
 
-    await test.step("When the user taps share on the square post", async () => {
-      await page
-        .getByRole("button", {
-          name: "Udostępnij Post kwadratowy",
-          exact: true,
-        })
-        .click();
-    });
-
-    await test.step("Then the ready PNG is passed during the tap", async () => {
-      const shared = JSON.parse(
-        (await page.locator("html").getAttribute("data-shared"))!,
-      );
-      expect(shared).toMatchObject({
-        name: "gi-standard-square.png",
-        type: "image/png",
-        isActive: true,
-      });
-      expect(shared.size).toBeGreaterThan(1000);
+    await test.step("Then downloads work and publishing asks to log in", async () => {
+      await expect(
+        page.getByRole("link", { name: "Pobierz Post kwadratowy PNG" }),
+      ).toHaveAttribute("href", /^blob:/);
+      await expect(
+        page
+          .getByRole("button", { name: "Zaloguj się" })
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Udostępnij/ }),
+      ).toHaveCount(0);
     });
   });
 });
