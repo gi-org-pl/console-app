@@ -13,6 +13,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: [".gi.org.pl"]
-  }
+    allowedHosts: [".gi.org.pl"],
+  },
 });
