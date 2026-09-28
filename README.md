@@ -46,16 +46,11 @@ On top of the stack in CLAUDE.md §1, the project adds `@fortawesome/*` (solid i
 
 `yarn build` outputs a static site in **build/client**; no Node server is needed. CI publishes the build artifact and test reports.
 
-The app is hosted on **GitHub Pages**. The `deploy-pages.yml` workflow tests the app and publishes the `main` branch to `https://gi-org-pl.github.io/console-app/`. In the Pages settings, the source must be GitHub Actions and the `github-pages` environment must allow `main`.
+The app is hosted on **GitHub Pages**. The `deploy-pages.yml` workflow tests the app and publishes the `main` branch to `https://console.gi.org.pl/`. In the Pages settings, the source must be GitHub Actions, the custom domain must be `console.gi.org.pl`, and the `github-pages` environment must allow `main`. DNS (CNAME `console` → `gi-org-pl.github.io`) is managed outside this repository.
 
-The Pages build uses `CONSOLE_BASE_PATH=/console-app/`. `scripts/preparePages.mjs` copies the prerendered HTML to the artifact root, because Pages itself mounts the site under the repository name. Static routes are prerendered, so `/marketing/` also works after a refresh without a server-side fallback.
+The Pages build uses `CONSOLE_BASE_PATH=/`. Static routes are prerendered, so `/marketing/` also works after a refresh without a server-side fallback.
 
-To serve the app from `console.gi.org.pl`:
-
-1. Add a DNS CNAME record `console` → `gi-org-pl.github.io`. DNS is managed outside this repository.
-2. Set the custom domain in the Pages settings.
-3. Set the repository variables `PAGES_BASE_PATH=/` and `PAGES_CUSTOM_DOMAIN=console.gi.org.pl`.
-4. Re-run the deploy and enable "Enforce HTTPS" once the certificate is issued.
+To serve the app from `https://gi-org-pl.github.io/console-app/` instead, remove the custom domain in the Pages settings and set the repository variable `PAGES_BASE_PATH=/console-app/`. `scripts/preparePages.mjs` then copies the prerendered HTML to the artifact root, because Pages itself mounts the site under the repository name.
 
 Before sharing a deploy, check `/`, a direct visit to `/marketing`, a page refresh, no horizontal scrolling, locally served fonts, and download/share on a phone. The app is intentionally public for now; restricting it to the team requires a real SSO gate before any internal rollout.
 

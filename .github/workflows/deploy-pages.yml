@@ -32,7 +32,7 @@ jobs:
       - name: Build for Pages
         run: yarn build && node scripts/preparePages.mjs
         env:
-          CONSOLE_BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/console-app/' }}
+          CONSOLE_BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/' }}
       - name: Add custom domain when configured
         if: vars.PAGES_CUSTOM_DOMAIN != ''
         env:
