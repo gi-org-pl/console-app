@@ -1,8 +1,9 @@
 import { faArrowUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useLocation } from "react-router";
 import { CONSOLE_MODULES } from "../../../constants/console";
+import { useBufferSessionStore } from "../../../services/buffer/utils/useBufferSession";
 import Sidebar from "./Sidebar/Sidebar";
 
 interface Props {
@@ -11,9 +12,26 @@ interface Props {
 
 const ConsoleShell = ({ children }: Props) => {
   const { pathname } = useLocation();
+  const checkSession = useBufferSessionStore((state) => state.checkSession);
+
+  // Once per app load: the account control and the publisher both need to know it.
+  useEffect(() => {
+    void checkSession();
+  }, [checkSession]);
   const activeModule = CONSOLE_MODULES.find((module) =>
     pathname.startsWith(module.path),
   );
+  const activeSubModule = activeModule?.subModules?.find(
+    (subModule) => subModule.path === pathname,
+  );
+  const crumbs = activeModule
+    ? [
+        activeModule.name,
+        ...(activeSubModule && activeSubModule.path !== activeModule.path
+          ? [activeSubModule.name]
+          : []),
+      ]
+    : ["Pulpit"];
 
   return (
     <div className="min-h-screen sm:grid sm:grid-cols-[208px_minmax(0,1fr)] desktop:grid-cols-[240px_minmax(0,1fr)]">
@@ -27,13 +45,16 @@ const ConsoleShell = ({ children }: Props) => {
       <div className="flex min-h-screen min-w-0 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-app-border bg-app-bg p-4 text-base text-app-muted sm:px-8">
           <div>
-            Console{" "}
-            <span aria-hidden="true" className="px-2 text-app-subtle">
-              /
-            </span>{" "}
-            <b className="font-medium text-app-text">
-              {activeModule?.name ?? "Pulpit"}
-            </b>
+            Console
+            {crumbs.map((crumb) => (
+              <span key={crumb}>
+                {" "}
+                <span aria-hidden="true" className="px-2 text-app-subtle">
+                  /
+                </span>{" "}
+                <b className="font-medium text-app-text">{crumb}</b>
+              </span>
+            ))}
           </div>
         </header>
         <main

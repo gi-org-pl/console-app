@@ -1,6 +1,35 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
+import { useBufferSessionStore } from "../../../services/buffer/utils/useBufferSession";
 import ConsoleShell from "./ConsoleShell";
+
+vi.mock("../../../constants/console", async () => {
+  const { faBullhorn } = await import("@fortawesome/free-solid-svg-icons");
+  return {
+    CONSOLE_MODULES: [
+      {
+        name: "Marketing",
+        path: "/marketing",
+        description: "",
+        category: "Komunikacja",
+        icon: faBullhorn,
+        subModules: [
+          { name: "Generator grafik", path: "/marketing" },
+          { name: "Publikacja", path: "/marketing/publisher" },
+        ],
+      },
+    ],
+  };
+});
+
+const checkSession = vi.fn().mockResolvedValue(undefined);
+beforeEach(() => {
+  useBufferSessionStore.setState({
+    status: "checking",
+    session: null,
+    checkSession,
+  });
+});
 
 const renderAt = (path: string) =>
   render(
@@ -33,6 +62,22 @@ describe("<ConsoleShell />", () => {
       renderAt("/marketing");
       expect(screen.getByRole("banner")).toHaveTextContent(
         "Console / Marketing",
+      );
+    });
+  });
+
+  describe("when the app loads", () => {
+    it("checks the login session once", () => {
+      renderAt("/");
+      expect(checkSession).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("when inside a submodule", () => {
+    it("shows the module and the submodule in the breadcrumb", () => {
+      renderAt("/marketing/publisher");
+      expect(screen.getByRole("banner")).toHaveTextContent(
+        "Console / Marketing / Publikacja",
       );
     });
   });

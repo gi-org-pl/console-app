@@ -14,4 +14,21 @@ describe("<EditorPanel />", () => {
       );
     });
   });
+
+  describe("when given an aside", () => {
+    it("shows it next to the title", () => {
+      render(
+        <EditorPanel
+          titleId="panel"
+          title="Kanały"
+          aside={<button type="button">Zaznacz wszystkie</button>}
+        >
+          Lista
+        </EditorPanel>,
+      );
+      expect(
+        screen.getByRole("button", { name: "Zaznacz wszystkie" }),
+      ).toBeInTheDocument();
+    });
+  });
 });

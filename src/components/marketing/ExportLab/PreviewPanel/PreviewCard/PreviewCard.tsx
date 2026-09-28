@@ -1,4 +1,4 @@
-import { faDownload, faShareNodes } from "@fortawesome/free-solid-svg-icons";
+import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "@gi-org-pl/athena";
 import { useState } from "react";
@@ -12,8 +12,6 @@ interface Props {
   description: string;
   isRendering: boolean;
   areActionsDisabled: boolean;
-  canShare: boolean;
-  onShare: (file: File) => void;
 }
 
 const IMAGE_CLASS_NAME =
@@ -25,8 +23,6 @@ const PreviewCard = ({
   description,
   isRendering,
   areActionsDisabled,
-  canShare,
-  onShare,
 }: Props) => {
   // Images stack in one box: the shown one stays while the next loads on top,
   // fades in over it, and only then does the previous one leave.
@@ -42,7 +38,7 @@ const PreviewCard = ({
   return (
     <article
       className={twMerge(
-        "overflow-hidden rounded-[10px] border border-app-border bg-app-surface",
+        "relative overflow-hidden rounded-[10px] border border-app-border bg-app-surface",
         preview?.hasOverflow && "border-red-500 ring-2 ring-red-500",
       )}
       aria-label={
@@ -51,7 +47,7 @@ const PreviewCard = ({
           : undefined
       }
     >
-      <div className="grid h-80 place-items-center bg-app-surface-2 p-4 @container-[size] sm:h-72 tablet:h-56 desktop:h-72 wide:h-88">
+      <div className="grid h-80 place-items-center bg-app-surface-2 px-4 pt-11 pb-4 @container-[size] sm:h-72 tablet:h-56 desktop:h-72 wide:h-88">
         <div
           className="relative overflow-hidden rounded-xs bg-app-surface shadow-[0_5px_12px_rgb(0_0_0/50%)]"
           style={{
@@ -109,51 +105,33 @@ const PreviewCard = ({
         </div>
         {isBusy && <span className="sr-only">Przygotowujemy grafikę…</span>}
       </div>
-      <div className="flex items-center justify-between gap-4 px-4 py-2">
-        <h3
-          className={twMerge(
-            "font-display text-base font-semibold",
-            preview?.hasOverflow && "text-red-500",
-          )}
+      <h3
+        className={twMerge(
+          "absolute top-2 left-2 rounded-md bg-app-bg/70 px-2 py-1 font-display text-sm leading-none font-semibold backdrop-blur-sm",
+          preview?.hasOverflow && "text-red-500",
+        )}
+      >
+        {format.ratio}
+        <span className="sr-only"> · {format.name}</span>
+      </h3>
+      <Button
+        asChild
+        isIconButton
+        type="ghost"
+        size="small"
+        disabled={isDisabled}
+        className="absolute top-2 right-2 size-8 rounded-full bg-app-bg/70 backdrop-blur-sm hover:bg-app-bg/90 max-sm:size-11"
+      >
+        {/* Without href a disabled link is neither focusable nor announced as a link. */}
+        <a
+          href={isDisabled ? undefined : preview?.url}
+          download={preview?.file.name}
+          aria-label={`Pobierz ${format.name} PNG`}
+          title="Pobierz PNG"
         >
-          {format.ratio}
-          <span className="sr-only"> · {format.name}</span>
-        </h3>
-        <div className="flex gap-2">
-          <Button
-            asChild
-            isIconButton
-            type="outlined"
-            size="small"
-            disabled={isDisabled}
-            className="size-8 max-sm:size-12"
-          >
-            {/* Without href a disabled link is neither focusable nor announced as a link. */}
-            <a
-              href={isDisabled ? undefined : preview?.url}
-              download={preview?.file.name}
-              aria-label={`Pobierz ${format.name} PNG`}
-              title="Pobierz PNG"
-            >
-              <FontAwesomeIcon icon={faDownload} />
-            </a>
-          </Button>
-          {canShare && (
-            <Button
-              isIconButton
-              type="outlined"
-              size="small"
-              disabled={isDisabled}
-              className="size-8 max-sm:size-12"
-              aria-label={`Udostępnij ${format.name}`}
-              title="Udostępnij"
-              onClick={() => preview && onShare(preview.file)}
-            >
-              <FontAwesomeIcon icon={faShareNodes} />
-            </Button>
-          )}
-        </div>
-      </div>
+          <FontAwesomeIcon icon={faDownload} />
+        </a>
+      </Button>
     </article>
   );
 };

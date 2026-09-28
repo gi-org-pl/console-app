@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { PreviewsState } from "../ExportLab.types";
 import PreviewPanel from "./PreviewPanel";
 
@@ -11,17 +11,6 @@ const readyState: PreviewsState = {
   error: null,
 };
 
-const mockShareSupport = (share: () => Promise<void>) => {
-  Object.defineProperty(navigator, "canShare", {
-    value: () => true,
-    configurable: true,
-  });
-  Object.defineProperty(navigator, "share", {
-    value: vi.fn(share),
-    configurable: true,
-  });
-};
-
 const renderPanel = (state: PreviewsState, isPhotoLoading = false) =>
   render(
     <PreviewPanel
@@ -31,15 +20,7 @@ const renderPanel = (state: PreviewsState, isPhotoLoading = false) =>
     />,
   );
 
-const shareButton = () =>
-  screen.getByRole("button", { name: "Udostępnij Post kwadratowy" });
-
 describe("<PreviewPanel />", () => {
-  afterEach(() => {
-    Reflect.deleteProperty(navigator, "canShare");
-    Reflect.deleteProperty(navigator, "share");
-  });
-
   describe("when previews are rendering", () => {
     it("marks the panel busy with a neutral badge", () => {
       renderPanel({ status: "rendering", previews: [], error: null });
@@ -83,34 +64,13 @@ describe("<PreviewPanel />", () => {
     });
   });
 
-  describe("when the device cannot share files", () => {
-    it("offers only downloads", () => {
+  describe("when previews are ready", () => {
+    it("offers one download per format and no share", () => {
       renderPanel(readyState);
+      expect(
+        screen.getByRole("link", { name: "Pobierz Post kwadratowy PNG" }),
+      ).toHaveAttribute("href", "blob:square");
       expect(screen.queryByRole("button", { name: /Udostępnij/ })).toBeNull();
-    });
-  });
-
-  describe("when the user shares a graphic", () => {
-    it("hands the prepared file to the system share sheet", async () => {
-      mockShareSupport(() => Promise.resolve());
-      renderPanel(readyState);
-      fireEvent.click(shareButton());
-      await waitFor(() =>
-        expect(navigator.share).toHaveBeenCalledWith({ files: [file] }),
-      );
-    });
-  });
-
-  describe("when sharing is cancelled or fails", () => {
-    it.each([
-      ["cancelled", new DOMException("", "AbortError")],
-      ["failed", new Error("fail")],
-    ])("swallows the %s share without crashing", async (_, reason) => {
-      mockShareSupport(() => Promise.reject(reason));
-      renderPanel(readyState);
-      fireEvent.click(shareButton());
-      await waitFor(() => expect(navigator.share).toHaveBeenCalled());
-      expect(shareButton()).toBeEnabled();
     });
   });
 });

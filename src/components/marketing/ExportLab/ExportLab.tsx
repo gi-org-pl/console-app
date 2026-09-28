@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import PageHeading from "../../shared/PageHeading/PageHeading";
+import BufferPublisher from "./BufferPublisher/BufferPublisher";
 import ContentForm from "./ContentForm/ContentForm";
 import { GRAPHIC_FORMATS, GRAPHIC_TEMPLATES } from "./ExportLab.constants";
 import type { Draft } from "./ExportLab.types";
@@ -43,9 +44,9 @@ const ExportLab = () => {
     <>
       <PageHeading
         isCompact
-        eyebrow="Marketing / Grafiki"
+        eyebrow="Marketing"
         title="Generator grafik"
-        description="Wybierz szablon i wygeneruj grafikę."
+        description="Wybierz szablon, wygeneruj grafikę i opublikuj ją w social mediach."
       />
       <div className="mt-8 grid items-start gap-4 tablet:grid-cols-[272px_minmax(0,1fr)] desktop:grid-cols-[320px_minmax(0,1fr)] desktop:gap-8">
         <div className="grid min-w-0 gap-4">
@@ -76,6 +77,7 @@ const ExportLab = () => {
           isPhotoLoading={photo.isLoading}
         />
       </div>
+      <BufferPublisher previews={previews} />
     </>
   );
 };
