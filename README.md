@@ -38,6 +38,43 @@ Front-end standards live in [CLAUDE.md](CLAUDE.md).
 
 PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 
+## Render route (Marketing)
+
+`/marketing/render` shows one graphic with its state taken from the URL, without the Console shell. It exists for scripts and agents that need a specific PNG without clicking through the editor. It runs the editor's own templates, validation and rasterizer, so the same values give the same image.
+
+```txt
+/marketing/render?template=standard&format=portrait&title=Nowy%20*projekt*&funding=none
+```
+
+| Parameter | Required | Value |
+| --- | --- | --- |
+| `template` | yes | A template id from `GRAPHIC_TEMPLATES`: `standard`, `news`. |
+| `format` | yes | A format id from `GRAPHIC_FORMATS`: `square` (1080×1080), `portrait` (1080×1350), `story` (1080×1920), `landscape` (1200×628). |
+| _field id_ | no | A value for one of the template's `fields`, under the same `id` as in the editor. A missing field keeps its `defaultValue`. Wrap a fragment in `*` to highlight it; encode a line break as `%0A`. |
+| `photo` | no | `1` announces a background photo. The file cannot travel in a URL, so the page then waits for it in its file input (see below). |
+| `focalX`, `focalY` | no | Focal point of the photo in percent, 0-100, default 50. Only with `photo=1`. |
+
+Fields per template:
+
+- **standard:** `title`, `titleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `position` (top, middle, bottom), `align` (left, center, right), `funding` (none, proo).
+- **news:** `personName`, `title`, `newsTitleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `funding` (none, proo).
+
+The result is reported on the page's root element, `<main>`:
+
+| Attribute | Meaning |
+| --- | --- |
+| `data-render-status` | `loading` while fonts load and the graphic is rasterized, `awaiting-photo` until a file is put into the file input, then `ready` or `error`. Wait for one of the last two instead of a timeout. |
+| `data-render-template`, `data-render-format`, `data-render-width`, `data-render-height` | What was requested, once the URL is understood. |
+| `data-render-overflow` | With `ready`: `true` when text does not fit a box marked with `data-fit`. The PNG is still produced; shorten the text or pick a smaller size and render again. |
+| `data-render-error` | With `error`: `missing-parameter`, `duplicate-parameter`, `unknown-template`, `unknown-format`, `unknown-parameter`, `invalid-photo`, `invalid-content` or `render-failed`. The message (in Polish, like the editor's) is in the `role="alert"` element. |
+| `data-render-error-fields` | With `invalid-content`: the ids of the fields to fix, separated by spaces. |
+
+When ready, the page contains a single `<img>` whose `src` is a blob URL of the PNG at the format's exact pixel size. Read the file with `fetch(img.src)` inside the page; a screenshot of the page is not the export.
+
+**Background photo:** open the URL with `photo=1`, wait for `data-render-status="awaiting-photo"`, put a JPG, PNG or WebP into the `input[type=file]` (Playwright: `setInputFiles`), then wait for `ready`. The photo goes through the editor's own downscaling.
+
+The route is a prerendered static page like the others, so it works under `CONSOLE_BASE_PATH` and on GitHub Pages.
+
 ## Dependencies pending Technical Leader approval
 
 On top of the stack in CLAUDE.md §1, the project adds `@fortawesome/*` (solid icons) and `modern-screenshot` (HTML template to PNG export). Both need TL approval.
