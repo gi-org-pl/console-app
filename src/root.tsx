@@ -1,14 +1,19 @@
 import { config } from "@fortawesome/fontawesome-svg-core";
-import { Links, Outlet, Scripts } from "react-router";
+import { Links, Outlet, Scripts, useMatches } from "react-router";
 import ConsoleShell from "./components/console/ConsoleShell/ConsoleShell";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import favicon from "./assets/images/avatar.png";
 import "./index.css";
+import type { RouteHandle } from "./types/console";
 
 // Styles are imported above; runtime injection would flash unstyled icons on SSR.
 config.autoAddCss = false;
 
 export default function App() {
+  const isBare = useMatches().some(
+    (match) => (match.handle as RouteHandle | undefined)?.isBare,
+  );
+
   return (
     <html lang="pl" className="dark">
       <head>
@@ -22,9 +27,13 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <ConsoleShell>
+        {isBare ? (
           <Outlet />
-        </ConsoleShell>
+        ) : (
+          <ConsoleShell>
+            <Outlet />
+          </ConsoleShell>
+        )}
         <Scripts />
       </body>
     </html>
