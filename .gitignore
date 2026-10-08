@@ -41,3 +41,6 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# yarn render
+/renders

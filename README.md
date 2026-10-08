@@ -75,6 +75,73 @@ When ready, the page contains a single `<img>` whose `src` is a blob URL of the 
 
 The route is a prerendered static page like the others, so it works under `CONSOLE_BASE_PATH` and on GitHub Pages.
 
+## Rendering graphics from the command line
+
+`yarn render` turns a JSON job into PNG files by opening the render route in headless Chromium. It needs no knowledge of the code: everything below is the whole interface.
+
+```sh
+yarn build                                  # once, and again after changing the app
+# built with CONSOLE_BASE_PATH other than "/"? then also: node scripts/preparePages.mjs
+yarn playwright install chromium            # once per machine
+yarn -s render job.json --out renders       # -s keeps Yarn's own lines out of stdout
+echo '{"template":"news"}' | yarn -s render - --out renders
+```
+
+| Argument | Meaning |
+| --- | --- |
+| `<job.json>` or `-` | The job file, or `-` to read the job from stdin. |
+| `--out <dir>` | Where to write the PNGs. Default: `renders`. Created when missing. |
+| `--url <base URL>` | Render against a running app, e.g. `https://console.gi.org.pl/`, instead of the local build in `build/client`. |
+
+A build made with a `CONSOLE_BASE_PATH` other than `/` keeps its pages under that path, where `vite preview` does not serve them. Run `node scripts/preparePages.mjs` with the same variable first (the Pages workflow does the same); without it the script stops with `missing-build` and says so.
+
+The job:
+
+```json
+{
+  "template": "standard",
+  "values": { "title": "Nowy *projekt*", "titleSize": 48, "funding": "none" },
+  "formats": ["square", "portrait"],
+  "photo": "photos/team.jpg",
+  "focalX": 50,
+  "focalY": 30
+}
+```
+
+- `template` (required) and the field names in `values` are the ones listed under [Render route](#render-route-marketing). Fields left out keep their defaults; numbers are accepted for sizes.
+- `formats` defaults to all four.
+- `photo` is a JPG, PNG or WebP path, relative to the current directory. `focalX` and `focalY` (0-100) are optional and need a `photo`.
+
+Stdout is one JSON document; nothing else is printed there:
+
+```json
+{
+  "ok": false,
+  "files": [
+    {
+      "format": "square",
+      "path": "/abs/renders/gi-standard-square.png",
+      "width": 1080,
+      "height": 1080,
+      "hasOverflow": true
+    }
+  ],
+  "errors": [
+    {
+      "format": "portrait",
+      "code": "invalid-content",
+      "message": "Wybierz: położenie tekstu.",
+      "fields": ["position"]
+    }
+  ]
+}
+```
+
+- The exit code is `0` when every format was written and `1` otherwise. Formats that succeeded are still written and listed.
+- `hasOverflow: true` means the text does not fit that format. The file exists, but the text may be clipped: shorten it or lower `titleSize` / `subtitleSize` and run again.
+- Error codes of a format are the render route's `data-render-error` values, plus `timeout`, `render-failed` and `size-mismatch` (the PNG is not the format's size). Errors without a `format` stop the whole run: `invalid-arguments`, `invalid-job`, `missing-build`, `output-failed`, `preview-failed`, `browser-unavailable`, `unexpected`. Stdout is the JSON document in every one of these cases.
+- Files are named `gi-<template>-<format>.png`, like the editor's downloads, and overwrite earlier ones in the same directory.
+
 ## Dependencies pending Technical Leader approval
 
 On top of the stack in CLAUDE.md §1, the project adds `@fortawesome/*` (solid icons) and `modern-screenshot` (HTML template to PNG export). Both need TL approval.
