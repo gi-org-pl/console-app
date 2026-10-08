@@ -136,4 +136,25 @@ test.describe("Feature: Marketing graphics from the command line", () => {
       },
     ]);
   });
+
+  test("Scenario: a setup failure still comes back as JSON", async ({
+    baseURL,
+  }, info) => {
+    const { code, result } = await render(
+      { template: "standard", formats: ["square"] },
+      info.outputPath("job.json"),
+      "--out",
+      // A file where the directory should be.
+      info.outputPath("job.json"),
+      "--url",
+      baseURL!,
+    );
+
+    expect(code).toBe(1);
+    expect(result).toMatchObject({
+      ok: false,
+      files: [],
+      errors: [{ code: "output-failed", fields: [] }],
+    });
+  });
 });

@@ -3,6 +3,7 @@ import path from "node:path";
 import { text } from "node:stream/consumers";
 import {
   buildRenderUrl,
+  getRenderRouteFiles,
   parseArguments,
   parseJob,
   readPngSize,
@@ -23,6 +24,12 @@ function finish(files, errors) {
     () => process.exit(errors.length === 0 ? 0 : 1),
   );
 }
+
+const exists = (file) =>
+  access(file).then(
+    () => true,
+    () => false,
+  );
 
 class SetupError extends Error {
   constructor(code, message) {
@@ -53,14 +60,17 @@ async function readJob(source) {
 
 /** Serves the built app the way `yarn preview` does, on a free local port. */
 async function servePreview() {
-  try {
-    await access(path.join(BUILD_DIR, "index.html"));
-  } catch {
+  const { served, prerendered } = getRenderRouteFiles(
+    BUILD_DIR,
+    process.env.CONSOLE_BASE_PATH,
+  );
+  if (!(await exists(served)))
     throw new SetupError(
       "missing-build",
-      `No build in ${BUILD_DIR}. Run "yarn build" first, or pass --url.`,
+      (await exists(prerendered))
+        ? `The build keeps its pages under the base path (${prerendered}), where the preview does not serve them. Run "node scripts/preparePages.mjs" with the same CONSOLE_BASE_PATH, or pass --url.`
+        : `No build of the render route at ${served}. Run "yarn build" first, or pass --url.`,
     );
-  }
   const { preview } = await import("vite");
   const server = await preview({
     logLevel: "silent",
@@ -178,7 +188,12 @@ async function main() {
         throw new SetupError("invalid-job", `Cannot read the photo ${photo}.`);
       });
     const outDir = path.resolve(options.out);
-    await mkdir(outDir, { recursive: true });
+    await mkdir(outDir, { recursive: true }).catch((cause) => {
+      throw new SetupError(
+        "output-failed",
+        `Cannot use ${outDir} as the output directory: ${cause.message}`,
+      );
+    });
 
     if (!options.url) server = await servePreview();
     const baseUrl = options.url ?? server.url;
@@ -207,8 +222,12 @@ async function main() {
       }
     }
   } catch (cause) {
-    if (!(cause instanceof SetupError)) throw cause;
-    errors.push({ code: cause.code, message: cause.message, fields: [] });
+    // Whatever went wrong, the caller still gets the JSON document it parses.
+    errors.push({
+      code: cause instanceof SetupError ? cause.code : "unexpected",
+      message: cause instanceof Error ? cause.message : String(cause),
+      fields: [],
+    });
   } finally {
     await browser?.close();
     await server?.close();

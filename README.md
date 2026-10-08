@@ -81,6 +81,7 @@ The route is a prerendered static page like the others, so it works under `CONSO
 
 ```sh
 yarn build                                  # once, and again after changing the app
+# built with CONSOLE_BASE_PATH other than "/"? then also: node scripts/preparePages.mjs
 yarn playwright install chromium            # once per machine
 yarn -s render job.json --out renders       # -s keeps Yarn's own lines out of stdout
 echo '{"template":"news"}' | yarn -s render - --out renders
@@ -91,6 +92,8 @@ echo '{"template":"news"}' | yarn -s render - --out renders
 | `<job.json>` or `-` | The job file, or `-` to read the job from stdin. |
 | `--out <dir>` | Where to write the PNGs. Default: `renders`. Created when missing. |
 | `--url <base URL>` | Render against a running app, e.g. `https://console.gi.org.pl/`, instead of the local build in `build/client`. |
+
+A build made with a `CONSOLE_BASE_PATH` other than `/` keeps its pages under that path, where `vite preview` does not serve them. Run `node scripts/preparePages.mjs` with the same variable first (the Pages workflow does the same); without it the script stops with `missing-build` and says so.
 
 The job:
 
@@ -136,7 +139,7 @@ Stdout is one JSON document; nothing else is printed there:
 
 - The exit code is `0` when every format was written and `1` otherwise. Formats that succeeded are still written and listed.
 - `hasOverflow: true` means the text does not fit that format. The file exists, but the text may be clipped: shorten it or lower `titleSize` / `subtitleSize` and run again.
-- Error codes of a format are the render route's `data-render-error` values, plus `timeout`, `render-failed` and `size-mismatch` (the PNG is not the format's size). Errors without a `format` stop the whole run: `invalid-arguments`, `invalid-job`, `missing-build`, `preview-failed`, `browser-unavailable`.
+- Error codes of a format are the render route's `data-render-error` values, plus `timeout`, `render-failed` and `size-mismatch` (the PNG is not the format's size). Errors without a `format` stop the whole run: `invalid-arguments`, `invalid-job`, `missing-build`, `output-failed`, `preview-failed`, `browser-unavailable`, `unexpected`. Stdout is the JSON document in every one of these cases.
 - Files are named `gi-<template>-<format>.png`, like the editor's downloads, and overwrite earlier ones in the same directory.
 
 ## Dependencies pending Technical Leader approval

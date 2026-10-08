@@ -1,3 +1,4 @@
+import path from "node:path";
 import { z } from "zod";
 
 /** Keep in sync with `GRAPHIC_FORMATS`; `renderJob.test.ts` fails when they drift. */
@@ -114,4 +115,18 @@ export function parseArguments(argv) {
       "Usage: yarn render <job.json | -> [--out <dir>] [--url <base URL>]",
     );
   return options;
+}
+
+const RENDER_ROUTE_FILE = "marketing/render/index.html";
+
+/**
+ * Where the render route's HTML is after a build. `vite preview` serves it from
+ * the build root; with a base path React Router prerenders it under that path
+ * instead, until `scripts/preparePages.mjs` copies it to the root.
+ */
+export function getRenderRouteFiles(buildDir, basePath) {
+  return {
+    served: path.join(buildDir, RENDER_ROUTE_FILE),
+    prerendered: path.join(buildDir, basePath || "/", RENDER_ROUTE_FILE),
+  };
 }

@@ -2,6 +2,7 @@ import { GRAPHIC_FORMATS } from "../src/components/marketing/ExportLab/ExportLab
 import {
   buildRenderUrl,
   DEFAULT_FORMATS,
+  getRenderRouteFiles,
   parseArguments,
   parseJob,
   readPngSize,
@@ -182,6 +183,35 @@ describe("parseArguments", () => {
       [["a.json", "b.json"], /^Unexpected argument b\.json\.$/],
     ])("rejects %j", (argv, message) => {
       expect(() => parseArguments(argv)).toThrow(message);
+    });
+  });
+});
+
+describe("getRenderRouteFiles", () => {
+  const normalize = (file: string) => file.replaceAll("\\", "/");
+
+  describe("when the app is built for the root", () => {
+    it.each([
+      [undefined],
+      ["/"],
+    ])("looks in one place for base %s", (basePath) => {
+      const files = getRenderRouteFiles("build/client", basePath);
+      expect(normalize(files.served)).toBe(
+        "build/client/marketing/render/index.html",
+      );
+      expect(files.prerendered).toBe(files.served);
+    });
+  });
+
+  describe("when the app is built for a base path", () => {
+    it("tells the served file from the one React Router prerendered", () => {
+      const files = getRenderRouteFiles("build/client", "/console-app/");
+      expect(normalize(files.served)).toBe(
+        "build/client/marketing/render/index.html",
+      );
+      expect(normalize(files.prerendered)).toBe(
+        "build/client/console-app/marketing/render/index.html",
+      );
     });
   });
 });
