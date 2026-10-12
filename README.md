@@ -38,6 +38,19 @@ Front-end standards live in [CLAUDE.md](CLAUDE.md).
 
 PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 
+### Funding banners
+
+| Option | Programme | Images |
+| --- | --- | --- |
+| `proo` | Rządowy Program Rozwoju Organizacji Obywatelskich na lata 2018-2030 | `public/grants/proo-left.png`, `proo-right.png` |
+| `fm` | Rządowy Program Fundusz Młodzieżowy na lata 2022-2033 | `public/grants/fm-left.png`, `fm-right.png` |
+
+A banner is two images on transparent 3603×459 canvases: the left one is the row of signs (Komitet do spraw Pożytku Publicznego, NIW-CRSO, the programme), the right one is the funding sentence. The `fm` pair is cut out of the sign set that NIW-CRSO publishes for beneficiaries and scaled down; nothing is redrawn. The `proo` pair came with the first version of the banner and has the same layout. The banner is a uniform black strip, so the version used is the achromatic one in inverse, which the guidelines allow on a dark uniform background.
+
+- Source of `fm`: the archive "Pełne zestawienia znaków" (`Pelne-zestawienia-znakow-NIW-CRSO.zip`, published 2025-06) on <https://niw.gov.pl/dla-beneficjentow/zasady-promocji-i-oznakowania-zadan-publicznych-dla-umow-podpisanych-od-17-04-2024-r/>, file `Fundusz Młodzieżowy/ACHROMATYCZNE_W_INWERSJI/FM_zestawienie_2_ACHROMATYCZNE_W_INWERSJI.png`. Downloaded on 2026-10-12.
+- The rules: "Wytyczne promocji zadań publicznych finansowanych lub dofinansowanych z NIW-CRSO" of 13 January 2026, linked on the same page. They also ask for the funding information in the text of the post; that is not part of the graphic.
+- A person compares a new banner with the guidelines before the first graphic with it is published.
+
 ## Render route (Marketing)
 
 `/marketing/render` shows one graphic with its state taken from the URL, without the Console shell. It exists for scripts and agents that need a specific PNG without clicking through the editor. It runs the editor's own templates, validation and rasterizer, so the same values give the same image.
@@ -56,8 +69,8 @@ PNGs are produced by rasterizing the rendered template with `modern-screenshot`,
 
 Fields per template:
 
-- **standard:** `title`, `titleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `position` (top, middle, bottom), `align` (left, center, right), `funding` (none, proo).
-- **news:** `personName`, `title`, `newsTitleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `funding` (none, proo).
+- **standard:** `title`, `titleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `position` (top, middle, bottom), `align` (left, center, right), `funding` (none, proo, fm).
+- **news:** `personName`, `title`, `newsTitleSize` (32, 48, 64, 80), `subtitle`, `subtitleSize` (24, 32, 40, 48), `funding` (none, proo, fm).
 
 The result is reported on the page's root element, `<main>`:
 
