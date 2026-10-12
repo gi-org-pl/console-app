@@ -5,6 +5,8 @@ import { z } from "zod";
 export const MAX_POST_TEXT_LENGTH = 5000;
 export const MIN_SCHEDULE_LEAD_MS = 60_000;
 export const MAX_SCHEDULE_DAYS = 30;
+/** The most images one request may name; each network has its own, lower or equal, limit. */
+export const MAX_POST_IMAGES = 20;
 
 export const bufferChannelSchema = z.object({
   id: z.string().min(1),
@@ -33,16 +35,29 @@ export const bufferPublishModeSchema = z.enum([
   "customScheduled",
 ]);
 
+/**
+ * The images of a post are given either as `mediaIds`, an ordered list, or as
+ * `mediaId`, the one image a post had before it could carry several.
+ */
 export const bufferPublishInputSchema = z
   .object({
     requestId: z.uuid(),
-    mediaId: z.uuid(),
+    mediaId: z.uuid().optional(),
+    mediaIds: z.array(z.uuid()).min(1).max(MAX_POST_IMAGES).optional(),
     channelId: z.string().min(1),
     text: z.string().trim().min(1).max(MAX_POST_TEXT_LENGTH),
     mode: bufferPublishModeSchema,
     dueAt: z.iso.datetime().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) => (input.mediaId === undefined) !== (input.mediaIds === undefined),
+    { message: 'Give either "mediaId" or "mediaIds".' },
+  )
+  .refine(
+    (input) => new Set(input.mediaIds).size === (input.mediaIds?.length ?? 0),
+    { message: "An image is listed twice.", path: ["mediaIds"] },
+  );
 
 export const bufferPublishResultSchema = z.object({
   postId: z.string().min(1),

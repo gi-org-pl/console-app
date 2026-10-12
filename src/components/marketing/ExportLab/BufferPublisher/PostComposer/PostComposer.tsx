@@ -12,8 +12,16 @@ import CaptionField from "./CaptionField/CaptionField";
 import ChannelPicker from "./ChannelPicker/ChannelPicker";
 import ChannelRow from "./ChannelRow/ChannelRow";
 import FormatPicker from "./FormatPicker/FormatPicker";
-import { DEFAULT_FORMAT_ID, PUBLISH_MODES } from "./PostComposer.constants";
-import type { PostContent, PublishDraft } from "./PostComposer.types";
+import {
+  DEFAULT_FORMAT_ID,
+  PUBLISH_MODES,
+  SERVICES,
+} from "./PostComposer.constants";
+import type {
+  ImageScope,
+  PostContent,
+  PublishDraft,
+} from "./PostComposer.types";
 import PublishSuccess from "./PublishSuccess/PublishSuccess";
 import ScheduleField from "./ScheduleField/ScheduleField";
 import { getScheduleError } from "./utils/scheduleBounds";
@@ -22,9 +30,12 @@ import { getPostIssues } from "./utils/validatePost";
 
 interface Props {
   session: BufferSession;
-  images: readonly Preview[];
+  /** The rendered formats of every graphic of the post, in the order they are published. */
+  graphics: readonly (readonly Preview[])[];
   graphicStatus: PreviewsState["status"];
 }
+
+const NO_IMAGES: readonly Preview[] = [];
 
 const TEXT_BUTTON_CLASS_NAME =
   "text-sm font-semibold text-app-accent-text hover:underline disabled:cursor-not-allowed disabled:opacity-60";
@@ -34,14 +45,17 @@ function createDraft(channelIds: readonly string[]): PublishDraft {
     channelIds,
     shared: { formatId: DEFAULT_FORMAT_ID, text: "" },
     overrides: {},
+    imageScopes: {},
     mode: "addToQueue",
     dueAt: "",
   };
 }
 
 /** One post shared by every selected channel, which any channel can override. */
-const PostComposer = ({ session, images, graphicStatus }: Props) => {
+const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
   const { channels } = session;
+  // The first graphic stands for the post wherever one picture is shown.
+  const images = graphics[0] ?? NO_IMAGES;
   const [draft, setDraft] = useState<PublishDraft>(() =>
     createDraft(channels.length === 1 ? [channels[0].id] : []),
   );
@@ -50,8 +64,17 @@ const PostComposer = ({ session, images, graphicStatus }: Props) => {
   const selected = channels.filter(({ id }) => draft.channelIds.includes(id));
   const contentFor = (channelId: string) =>
     draft.overrides[channelId] ?? draft.shared;
-  const issuesFor = ({ id, service }: BufferChannel) =>
-    getPostIssues(service, contentFor(id));
+  const scopeFor = ({ id, service }: BufferChannel): ImageScope =>
+    draft.imageScopes[id] ?? SERVICES[service].defaultImageScope;
+  /** The graphics a channel gets: all of them, or the first only. */
+  const graphicsFor = (channel: BufferChannel) =>
+    scopeFor(channel) === "all" ? graphics : graphics.slice(0, 1);
+  const issuesFor = (channel: BufferChannel) =>
+    getPostIssues(
+      channel.service,
+      contentFor(channel.id),
+      graphicsFor(channel).length,
+    );
   const pending = selected.filter(
     ({ id }) => results[id]?.status !== "success",
   );
@@ -119,12 +142,17 @@ const PostComposer = ({ session, images, graphicStatus }: Props) => {
 
   function submit() {
     void publish(
-      pending.map(({ id }) => {
+      pending.map((channel) => {
+        const { id } = channel;
         const content = contentFor(id);
         return {
           channelId: id,
-          file: images.find(({ formatId }) => formatId === content.formatId)
-            ?.file,
+          // One format for all images of a channel, so they match in size.
+          files: graphicsFor(channel).map(
+            (formats) =>
+              formats.find(({ formatId }) => formatId === content.formatId)
+                ?.file,
+          ),
           text: content.text.trim(),
           mode: draft.mode,
           dueAt:
@@ -200,6 +228,8 @@ const PostComposer = ({ session, images, graphicStatus }: Props) => {
                   content={contentFor(channel.id)}
                   isCustomized={!!draft.overrides[channel.id]}
                   images={images}
+                  graphicCount={graphics.length}
+                  imageScope={scopeFor(channel)}
                   issues={issuesFor(channel)}
                   result={results[channel.id]}
                   isDisabled={isPublishing}
@@ -208,6 +238,14 @@ const PostComposer = ({ session, images, graphicStatus }: Props) => {
                   }
                   onReset={() => setOverride(channel.id, null)}
                   onChange={(content) => setOverride(channel.id, content)}
+                  onImageScopeChange={(imageScope) =>
+                    update({
+                      imageScopes: {
+                        ...draft.imageScopes,
+                        [channel.id]: imageScope,
+                      },
+                    })
+                  }
                 />
               ))}
             </ul>

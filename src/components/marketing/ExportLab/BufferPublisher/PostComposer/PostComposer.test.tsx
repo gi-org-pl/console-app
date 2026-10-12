@@ -40,7 +40,7 @@ const renderComposer = (session = SESSION, graphicStatus = "ready" as const) =>
   render(
     <PostComposer
       session={session}
-      images={IMAGES}
+      graphics={[IMAGES]}
       graphicStatus={graphicStatus}
     />,
   );
@@ -113,7 +113,7 @@ describe("<PostComposer />", () => {
       render(
         <PostComposer
           session={SESSION}
-          images={IMAGES}
+          graphics={[IMAGES]}
           graphicStatus={graphicStatus}
         />,
       );
@@ -300,6 +300,176 @@ describe("<PostComposer />", () => {
       );
       const [, failed, retried] = vi.mocked(createBufferPost).mock.calls;
       expect(retried[0].requestId).toBe(failed[0].requestId);
+    });
+  });
+
+  describe("when the post has several graphics", () => {
+    const copy = (number: number): Preview[] =>
+      IMAGES.map((preview) => ({
+        ...preview,
+        url: `${preview.url}-${number}`,
+        file: new File(["png"], `${number}-${preview.formatId}.png`, {
+          type: "image/png",
+        }),
+      }));
+    const SECOND = copy(2);
+    const THIRD = copy(3);
+    const SEVERAL = {
+      ...SESSION,
+      channels: [
+        SESSION.channels[0],
+        { id: "li", name: "GI LinkedIn", service: "linkedin" as const },
+        SESSION.channels[1],
+      ],
+    };
+    const renderSeveral = (graphics = [IMAGES, SECOND, THIRD]) =>
+      render(
+        <PostComposer
+          session={SEVERAL}
+          graphics={graphics}
+          graphicStatus="ready"
+        />,
+      );
+    const scope = (channel: string, name: RegExp | string) =>
+      within(
+        screen.getByRole("radiogroup", { name: `Grafiki dla: ${channel}` }),
+      ).getByRole("radio", { name });
+    const sentTo = (channelId: string) =>
+      vi
+        .mocked(createBufferPost)
+        .mock.calls.map(([input]) => input)
+        .find((input) => input.channelId === channelId);
+    const publish = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Dodaj do kolejki" }));
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent("Dodano"),
+      );
+    };
+
+    beforeEach(() => {
+      // The media ID of an upload is the name of its file, so the order can be read back.
+      vi.mocked(uploadBufferMedia).mockImplementation(
+        async (png) => (png as File).name,
+      );
+    });
+
+    it("offers no choice of graphics while the post has one", () => {
+      renderSeveral([IMAGES]);
+      select(/GI Instagram/);
+      expect(
+        screen.queryByRole("radiogroup", { name: /^Grafiki dla/ }),
+      ).toBeNull();
+      expect(screen.getByText(/4:5 · wspólna treść/)).toBeInTheDocument();
+    });
+
+    it("gives Instagram all of them and LinkedIn the first by default, and says why", () => {
+      renderSeveral();
+      select(/GI Instagram/);
+      select(/GI LinkedIn/);
+
+      expect(scope("GI Instagram", "Wszystkie grafiki (3)")).toBeChecked();
+      expect(scope("GI LinkedIn", "Tylko pierwsza")).toBeChecked();
+      expect(screen.getByText(/grafik: 3 · wspólna treść/)).toBeInTheDocument();
+      expect(screen.getByText(/1 grafika · wspólna treść/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Instagram pokaże grafiki jako karuzelę/),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/LinkedIn układa kilka grafik w kolaż/),
+      ).toBeInTheDocument();
+    });
+
+    it("sends every graphic to Instagram in the order shown and the first one to LinkedIn", async () => {
+      renderSeveral();
+      select(/GI Instagram/);
+      select(/GI LinkedIn/);
+      write("Seria");
+      await publish();
+
+      expect(sentTo("ig")?.mediaIds).toEqual([
+        "portrait.png",
+        "2-portrait.png",
+        "3-portrait.png",
+      ]);
+      expect(sentTo("ig")).not.toHaveProperty("mediaId");
+      expect(sentTo("li")?.mediaId).toBe("portrait.png");
+      expect(sentTo("li")).not.toHaveProperty("mediaIds");
+      // Three graphics in one format: each is uploaded once for both channels.
+      expect(uploadBufferMedia).toHaveBeenCalledTimes(3);
+    });
+
+    it("sends every graphic to LinkedIn once it is switched, in the format of that channel", async () => {
+      renderSeveral();
+      select(/GI LinkedIn/);
+      write("Seria");
+      fireEvent.click(scope("GI LinkedIn", "Wszystkie grafiki (3)"));
+      fireEvent.click(
+        screen.getByRole("radio", { name: "Post kwadratowy (1:1)" }),
+      );
+      await publish();
+
+      expect(sentTo("li")?.mediaIds).toEqual([
+        "square.png",
+        "2-square.png",
+        "3-square.png",
+      ]);
+    });
+
+    it("offers no choice on a network that takes one image, and gives it the first", async () => {
+      renderSeveral();
+      select(/GI X/);
+      write("Seria");
+
+      expect(
+        screen.queryByRole("radiogroup", { name: "Grafiki dla: GI X" }),
+      ).toBeNull();
+      expect(
+        screen.getByText(
+          "Ten kanał przyjmuje jedną grafikę w poście, więc dostaje pierwszą.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/1 grafika · wspólna treść/)).toBeInTheDocument();
+      await publish();
+      expect(sentTo("x")?.mediaId).toBe("portrait.png");
+    });
+
+    it("blocks only the channel that would get more graphics than its network takes", () => {
+      renderSeveral(Array.from({ length: 11 }, (_, index) => copy(index + 1)));
+      select(/GI Instagram/);
+      select(/GI LinkedIn/);
+      write("Seria");
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Instagram przyjmuje najwyżej 10 grafik w poście, a ten ma 11. Usuń część grafik albo wyślij tylko pierwszą.",
+      );
+      expect(status()).toHaveTextContent("Popraw posty oznaczone na czerwono.");
+      expect(publishButton()).toBeDisabled();
+
+      // LinkedIn was never the problem: without Instagram the post can go.
+      select(/GI Instagram/);
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(publishButton()).toBeEnabled();
+    });
+
+    it("lets the blocked channel go once it gets the first graphic only", () => {
+      renderSeveral(Array.from({ length: 11 }, (_, index) => copy(index + 1)));
+      select(/GI Instagram/);
+      write("Seria");
+      expect(publishButton()).toBeDisabled();
+
+      fireEvent.click(scope("GI Instagram", "Tylko pierwsza"));
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(publishButton()).toBeEnabled();
+    });
+    it("forgets the choices when a new post is started", async () => {
+      renderSeveral();
+      select(/GI LinkedIn/);
+      write("Seria");
+      fireEvent.click(scope("GI LinkedIn", "Wszystkie grafiki (3)"));
+      await publish();
+
+      fireEvent.click(screen.getByRole("button", { name: "Nowa publikacja" }));
+      expect(scope("GI LinkedIn", "Tylko pierwsza")).toBeChecked();
     });
   });
 });

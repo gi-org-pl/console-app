@@ -7,22 +7,36 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button, InfoMessage } from "@gi-org-pl/athena";
 import { useState } from "react";
 import { useBufferSessionStore } from "../../../../services/buffer/utils/useBufferSession";
-import type { PreviewsState } from "../ExportLab.types";
+import type { Preview, PreviewsState } from "../ExportLab.types";
 import PostComposer from "./PostComposer/PostComposer";
 
 interface Props {
-  previews: PreviewsState;
+  /** The previews of every graphic of the post, in the order they are published. */
+  graphics: readonly PreviewsState[];
 }
 
-const BufferPublisher = ({ previews }: Props) => {
+const NO_IMAGES: readonly Preview[] = [];
+
+const BufferPublisher = ({ graphics }: Props) => {
   const { status, session, error, checkSession, connect } =
     useBufferSessionStore();
-  // Editing the graphic briefly empties the previews; keeping the last ready set
-  // stops the composer, and the post being written, from resetting.
-  const [images, setImages] = useState(previews.previews);
-  if (previews.status === "ready" && previews.previews !== images) {
-    setImages(previews.previews);
+  // Editing a graphic briefly empties its previews; keeping the last ready set
+  // of each one stops the composer, and the post being written, from resetting.
+  const [images, setImages] = useState<readonly (readonly Preview[])[]>([]);
+  const latest = graphics.map((state, index) =>
+    state.status === "ready" ? state.previews : (images[index] ?? NO_IMAGES),
+  );
+  if (
+    latest.length !== images.length ||
+    latest.some((set, index) => set !== images[index])
+  ) {
+    setImages(latest);
   }
+  const graphicStatus = graphics.some(({ status }) => status === "error")
+    ? "error"
+    : graphics.some(({ status }) => status === "rendering")
+      ? "rendering"
+      : "ready";
 
   return (
     <section
@@ -91,8 +105,8 @@ const BufferPublisher = ({ previews }: Props) => {
       {status === "connected" && session && (
         <PostComposer
           session={session}
-          images={images}
-          graphicStatus={previews.status}
+          graphics={images}
+          graphicStatus={graphicStatus}
         />
       )}
     </section>

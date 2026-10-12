@@ -38,6 +38,17 @@ Front-end standards live in [CLAUDE.md](CLAUDE.md).
 
 PNGs are produced by rasterizing the rendered template with `modern-screenshot`, so the preview is exactly the file you download.
 
+## Posts with several graphics (Marketing)
+
+A post is an ordered set of graphics. The panel "Grafiki posta" adds a graphic (a copy of the one being edited, placed right after it), removes one, moves it earlier or later and picks the one to edit. Every graphic has its own template, field values and photo, and is rendered in all four formats; the preview and the download links show the graphic being edited, and the name of a downloaded file carries its number when the post has more than one (`gi-2-standard-square.png`).
+
+- **Per channel:** with more than one graphic, every channel has a choice between all graphics and the first one only. The default is a trait of the network in `SERVICES` (`PostComposer.constants.ts`): all for Instagram, where it is a carousel; the first only for the others, with a line that says why.
+- **One format per channel:** all images a channel gets are in the format chosen for it, so they match in size.
+- **Limits:** `maxImages` in `SERVICES` mirrors `MAX_IMAGES` of console-publisher-worker (Instagram 10, Facebook 10, LinkedIn 20, the others 1). A channel that would get more is blocked with the reason on its row; the other channels are not. A post holds at most 20 graphics, the most one request to the Worker may name.
+- **Publishing:** every image is uploaded, then the post is created. If an upload fails, no post is created for that channel and the message names the graphic. A post with one graphic is sent with `mediaId`, exactly as before; one with several is sent with `mediaIds` and needs a Worker that knows the list (gi-org-pl/console-publisher-worker#7).
+- **Text that does not fit** marks the graphic in the panel, so it is clear which one it concerns; it does not block publishing, as before.
+- Not covered: the render route and `yarn render` still make one graphic at a time, and there is no single download of the whole set.
+
 ## Render route (Marketing)
 
 `/marketing/render` shows one graphic with its state taken from the URL, without the Console shell. It exists for scripts and agents that need a specific PNG without clicking through the editor. It runs the editor's own templates, validation and rasterizer, so the same values give the same image.

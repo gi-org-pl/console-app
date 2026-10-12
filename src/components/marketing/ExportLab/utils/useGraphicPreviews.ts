@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { GRAPHIC_FORMATS, PREVIEW_DEBOUNCE_MS } from "../ExportLab.constants";
 import type {
   GraphicContent,
@@ -20,9 +20,23 @@ const RENDERING_STATE: PreviewsState = {
 export function useGraphicPreviews(
   template: GraphicTemplate,
   content: GraphicContent,
+  /**
+   * A queue shared by several graphics, so that their rasterizations run one
+   * after another. Without it the graphic queues only behind itself.
+   */
+  sharedQueue?: RefObject<Promise<void>>,
 ): PreviewsState {
-  const [state, setState] = useState<PreviewsState>(RENDERING_STATE);
-  const renderQueue = useRef(Promise.resolve());
+  // The previews are kept with what they were drawn from: once the template or
+  // the content changes they are out of date at once, not an effect later.
+  const [result, setResult] = useState({
+    state: RENDERING_STATE,
+    template,
+    content,
+  });
+  const setState = (state: PreviewsState) =>
+    setResult({ state, template, content });
+  const ownQueue = useRef(Promise.resolve());
+  const renderQueue = sharedQueue ?? ownQueue;
 
   useEffect(() => {
     let isCancelled = false;
@@ -85,7 +99,9 @@ export function useGraphicPreviews(
       clearTimeout(timer);
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [template, content]);
+  }, [template, content, renderQueue]);
 
-  return state;
+  return result.template === template && result.content === content
+    ? result.state
+    : RENDERING_STATE;
 }

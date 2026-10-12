@@ -165,4 +165,19 @@ describe("<PreviewCard />", () => {
       expect(downloadLink()).toHaveAttribute("aria-disabled", "true");
     });
   });
+
+  describe("when the graphic is one of several in a post", () => {
+    it("puts its number into the name of the downloaded file", () => {
+      render(<PreviewCard {...baseProps} preview={preview} fileNumber={3} />);
+      expect(downloadLink()).toHaveAttribute(
+        "download",
+        "gi-3-classic-square.png",
+      );
+    });
+
+    it("has no name to offer while the graphic is not drawn", () => {
+      render(<PreviewCard {...baseProps} fileNumber={3} />);
+      expect(downloadLink()).not.toHaveAttribute("download");
+    });
+  });
 });

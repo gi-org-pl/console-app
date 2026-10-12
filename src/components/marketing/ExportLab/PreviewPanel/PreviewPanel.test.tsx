@@ -73,4 +73,44 @@ describe("<PreviewPanel />", () => {
       expect(screen.queryByRole("button", { name: /Udostępnij/ })).toBeNull();
     });
   });
+
+  describe("when the post has one graphic", () => {
+    it("says nothing about its place and keeps the name of the file", () => {
+      render(
+        <PreviewPanel
+          state={readyState}
+          description="Tytuł"
+          isPhotoLoading={false}
+          position={{ number: 1, count: 1 }}
+        />,
+      );
+      expect(
+        screen.getByRole("region", { name: "Podgląd formatów" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Pobierz Post kwadratowy PNG"),
+      ).toHaveAttribute("download", "gi-classic-square.png");
+    });
+  });
+
+  describe("when the post has several graphics", () => {
+    it("says which one is shown and numbers the downloaded file", () => {
+      render(
+        <PreviewPanel
+          state={readyState}
+          description="Tytuł"
+          isPhotoLoading={false}
+          position={{ number: 2, count: 3 }}
+        />,
+      );
+      expect(
+        screen.getByRole("region", {
+          name: "Podgląd formatów · grafika 2 z 3",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Pobierz Post kwadratowy PNG"),
+      ).toHaveAttribute("download", "gi-2-classic-square.png");
+    });
+  });
 });

@@ -10,6 +10,10 @@ export const SESSION = {
   ],
 };
 
+/** The ID the stand-in gives to an upload: the first one gets `MEDIA_ID`, each next one its own. */
+export const mediaIdOf = (upload: number) =>
+  MEDIA_ID.slice(0, -1) + (upload - 1).toString(16);
+
 /**
  * Stands in for console-publisher-worker, which the app calls cross-origin, so no
  * test depends on the real network. Returns the post bodies the page sent.
@@ -45,7 +49,7 @@ export async function stubBufferWorker(
     }
     if (path === "/api/buffer/media") {
       uploads++;
-      return route.fulfill({ json: { mediaId: MEDIA_ID }, headers });
+      return route.fulfill({ json: { mediaId: mediaIdOf(uploads) }, headers });
     }
     if (path === "/api/buffer/posts") {
       posts.push(request.postDataJSON());

@@ -189,4 +189,48 @@ describe("useGraphicPreviews", () => {
       expect(result.current.previews).toHaveLength(4);
     });
   });
+
+  describe("when the content changes after the previews were ready", () => {
+    it("is rendering again in the same render, never ready with the old previews", async () => {
+      const { result, rerender } = renderHook(
+        ({ content }) => useGraphicPreviews(STANDARD_TEMPLATE, content),
+        { initialProps: { content: validContent } },
+      );
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+
+      rerender({ content: { ...validContent } });
+      expect(result.current).toEqual({
+        status: "rendering",
+        previews: [],
+        error: null,
+      });
+      await waitFor(() => expect(result.current.status).toBe("ready"));
+    });
+  });
+
+  describe("when several graphics share one queue", () => {
+    it("waits for the graphic that is being drawn before it starts the next", async () => {
+      const queue = { current: Promise.resolve() };
+      let running = 0;
+      let mostAtOnce = 0;
+      vi.mocked(rasterizeGraphic).mockImplementation(async () => {
+        mostAtOnce = Math.max(mostAtOnce, ++running);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        running--;
+        return { blob: new Blob(["png"]), hasOverflow: false };
+      });
+      const first = renderHook(() =>
+        useGraphicPreviews(STANDARD_TEMPLATE, validContent, queue),
+      );
+      const second = renderHook(() =>
+        useGraphicPreviews(STANDARD_TEMPLATE, validContent, queue),
+      );
+
+      await waitFor(() => {
+        expect(first.result.current.status).toBe("ready");
+        expect(second.result.current.status).toBe("ready");
+      });
+      expect(mostAtOnce).toBe(1);
+    });
+  });
 });

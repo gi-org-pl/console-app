@@ -18,6 +18,7 @@ import {
   type BufferPublishMode,
   MAX_POST_TEXT_LENGTH,
 } from "../../../../../services/buffer/schemas/buffer.schemas";
+import type { ImageScope } from "./PostComposer.types";
 
 export interface ServiceInfo {
   label: string;
@@ -27,7 +28,20 @@ export interface ServiceInfo {
   /** Graphic formats the network rejects as a feed post. */
   unsupportedFormatIds: readonly string[];
   hasClickableLinks: boolean;
+  /** How many graphics one post may carry; mirrors `MAX_IMAGES` of the Worker. */
+  maxImages: number;
+  /** What a channel of this network gets from a post with several graphics, unless changed. */
+  defaultImageScope: ImageScope;
+  /** Why the default is what it is, shown next to the choice. */
+  imageScopeHint: string;
 }
+
+const SINGLE_IMAGE = {
+  maxImages: 1,
+  defaultImageScope: "first",
+  imageScopeHint:
+    "Ten kanał przyjmuje jedną grafikę w poście, więc dostaje pierwszą.",
+} as const;
 
 export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
   facebook: {
@@ -36,6 +50,10 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: MAX_POST_TEXT_LENGTH,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    maxImages: 10,
+    defaultImageScope: "first",
+    imageScopeHint:
+      "Facebook układa kilka grafik w kolaż, więc domyślnie dostaje tylko pierwszą.",
   },
   instagram: {
     label: "Instagram",
@@ -44,6 +62,10 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     // The Worker publishes feed posts, which Instagram crops to 4:5 at most.
     unsupportedFormatIds: ["story"],
     hasClickableLinks: false,
+    maxImages: 10,
+    defaultImageScope: "all",
+    imageScopeHint:
+      "Instagram pokaże grafiki jako karuzelę, w proporcjach pierwszej z nich.",
   },
   linkedin: {
     label: "LinkedIn",
@@ -51,6 +73,10 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: 3000,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    maxImages: 20,
+    defaultImageScope: "first",
+    imageScopeHint:
+      "LinkedIn układa kilka grafik w kolaż, więc domyślnie dostaje tylko pierwszą.",
   },
   threads: {
     label: "Threads",
@@ -58,6 +84,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: 500,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    ...SINGLE_IMAGE,
   },
   bluesky: {
     label: "Bluesky",
@@ -65,6 +92,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: 300,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    ...SINGLE_IMAGE,
   },
   mastodon: {
     label: "Mastodon",
@@ -72,6 +100,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: 500,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    ...SINGLE_IMAGE,
   },
   twitter: {
     label: "X",
@@ -79,6 +108,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     maxLength: 280,
     unsupportedFormatIds: [],
     hasClickableLinks: true,
+    ...SINGLE_IMAGE,
   },
 };
 

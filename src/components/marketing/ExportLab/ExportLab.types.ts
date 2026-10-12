@@ -96,6 +96,18 @@ export interface Draft {
   values: FieldValues;
 }
 
+/** One graphic of a post; a post is an ordered list of them. */
+export interface PostGraphic extends Draft {
+  id: string;
+}
+
+/** The previews of one graphic of a post, with what they were drawn from. */
+export interface GraphicPreviewsEntry {
+  state: PreviewsState;
+  graphic: PostGraphic;
+  photo: GraphicPhoto | null;
+}
+
 export interface PhotoState {
   photo: GraphicPhoto | null;
   isLoading: boolean;

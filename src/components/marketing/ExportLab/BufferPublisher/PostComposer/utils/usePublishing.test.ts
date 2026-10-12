@@ -14,7 +14,7 @@ const MEDIA_ID = "d1b1e6c0-0000-4000-8000-000000000000";
 const file = new File(["png"], "square.png", { type: "image/png" });
 const post = (channelId: string, text = "Hej") => ({
   channelId,
-  file,
+  files: [file],
   text,
   mode: "addToQueue" as const,
 });
@@ -43,7 +43,7 @@ describe("usePublishing", () => {
     it("fails that channel without calling the Worker", async () => {
       const { result } = renderHook(() => usePublishing());
       await act(() =>
-        result.current.publish([{ ...post("a"), file: undefined }]),
+        result.current.publish([{ ...post("a"), files: [undefined] }]),
       );
       expect(result.current.results.a).toEqual({
         status: "error",
@@ -91,6 +91,99 @@ describe("usePublishing", () => {
       await act(() => result.current.publish([post("a")]));
       const [first, second] = vi.mocked(createBufferPost).mock.calls;
       expect(second[0].requestId).not.toBe(first[0].requestId);
+    });
+  });
+
+  describe("when a post has one graphic", () => {
+    it("sends it the way a post was always sent", async () => {
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([post("a")]));
+
+      const [input] = vi.mocked(createBufferPost).mock.calls[0];
+      expect(input.mediaId).toBe(MEDIA_ID);
+      expect(input).not.toHaveProperty("mediaIds");
+    });
+  });
+
+  describe("when a post has several graphics", () => {
+    const second = new File(["png"], "second.png", { type: "image/png" });
+    const SECOND_ID = "d1b1e6c0-0000-4000-8000-000000000001";
+    const several = (channelId: string) => ({
+      ...post(channelId),
+      files: [file, second],
+    });
+    const uploadByFile = () =>
+      vi
+        .mocked(uploadBufferMedia)
+        .mockImplementation(async (png) =>
+          png === file ? MEDIA_ID : SECOND_ID,
+        );
+
+    it("uploads each once and sends their IDs in the order shown", async () => {
+      uploadByFile();
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([several("a"), several("b")]));
+
+      expect(uploadBufferMedia).toHaveBeenCalledTimes(2);
+      for (const [input] of vi.mocked(createBufferPost).mock.calls) {
+        expect(input.mediaIds).toEqual([MEDIA_ID, SECOND_ID]);
+        expect(input).not.toHaveProperty("mediaId");
+      }
+      expect(result.current.results.b.status).toBe("success");
+    });
+
+    it("creates no post when one upload fails and says which graphic it was", async () => {
+      vi.mocked(uploadBufferMedia)
+        .mockResolvedValueOnce(MEDIA_ID)
+        .mockRejectedValueOnce(new Error("Plik jest za duży."));
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([several("a")]));
+
+      expect(result.current.results.a).toEqual({
+        status: "error",
+        message: "Nie udało się wysłać grafiki 2: Plik jest za duży.",
+      });
+      expect(createBufferPost).not.toHaveBeenCalled();
+    });
+
+    it("names the graphic also when the failure has no message", async () => {
+      vi.mocked(uploadBufferMedia).mockRejectedValueOnce("offline");
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([several("a")]));
+
+      expect(result.current.results.a.message).toBe(
+        "Nie udało się wysłać grafiki 1.",
+      );
+    });
+
+    it("uploads only the failed graphic again on the next attempt", async () => {
+      vi.mocked(uploadBufferMedia)
+        .mockResolvedValueOnce(MEDIA_ID)
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValueOnce(SECOND_ID);
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([several("a")]));
+      await act(() => result.current.publish([several("a")]));
+
+      expect(uploadBufferMedia).toHaveBeenCalledTimes(3);
+      expect(vi.mocked(createBufferPost).mock.calls[0][0].mediaIds).toEqual([
+        MEDIA_ID,
+        SECOND_ID,
+      ]);
+    });
+
+    it.each([
+      ["one of them is not ready", [file, undefined]],
+      ["there is none", []],
+    ])("sends nothing when %s", async (_name, files) => {
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([{ ...post("a"), files }]));
+
+      expect(result.current.results.a.message).toBe(
+        "Grafika nie jest jeszcze gotowa.",
+      );
+      expect(uploadBufferMedia).not.toHaveBeenCalled();
+      expect(createBufferPost).not.toHaveBeenCalled();
     });
   });
 });

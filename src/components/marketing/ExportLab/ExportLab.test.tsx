@@ -92,4 +92,170 @@ describe("<ExportLab />", () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe("when the user builds a post of several graphics", () => {
+    const graphic = (number: number) =>
+      screen.getByRole("radio", { name: new RegExp(`^Grafika ${number}`) });
+    const title = () => screen.getByLabelText("Tytuł");
+    const add = () =>
+      fireEvent.click(screen.getByRole("button", { name: "Dodaj grafikę" }));
+    const setTitle = (value: string) =>
+      fireEvent.change(title(), { target: { value } });
+    const region = (name: string) => screen.getByRole("region", { name });
+    /** Titles drawn last for each template, in the order of the calls. */
+    const drawnTitles = () =>
+      vi
+        .mocked(rasterizeGraphic)
+        .mock.calls.map(([, content]) => content.values.title);
+
+    it("starts with one graphic and no word about its place", () => {
+      render(<ExportLab />);
+      expect(graphic(1)).toBeChecked();
+      expect(screen.getAllByRole("radio", { name: /^Grafika/ })).toHaveLength(
+        1,
+      );
+      expect(region("Podgląd formatów")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /^Usuń grafikę/ }),
+      ).toBeNull();
+    });
+
+    it("adds a copy of the graphic being edited and edits the copy on its own", async () => {
+      render(<ExportLab />);
+      setTitle("Pierwsza");
+      fireEvent.click(screen.getByRole("radio", { name: "News" }));
+      add();
+
+      expect(graphic(2)).toBeChecked();
+      expect(region("Podgląd formatów · grafika 2 z 2")).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: "News" })).toBeChecked();
+      expect(title()).toHaveValue("Pierwsza");
+
+      setTitle("Druga");
+      fireEvent.click(screen.getByRole("radio", { name: "Standard" }));
+      fireEvent.click(graphic(1));
+      expect(title()).toHaveValue("Pierwsza");
+      expect(screen.getByRole("radio", { name: "News" })).toBeChecked();
+
+      fireEvent.click(graphic(2));
+      expect(title()).toHaveValue("Druga");
+      expect(screen.getByRole("radio", { name: "Standard" })).toBeChecked();
+      await waitFor(() => {
+        expect(drawnTitles()).toContain("Pierwsza");
+        expect(drawnTitles()).toContain("Druga");
+      });
+    });
+
+    it("reorders the graphics and keeps editing the one that moved", () => {
+      render(<ExportLab />);
+      setTitle("Pierwsza");
+      add();
+      setTitle("Druga");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Przesuń grafikę 2 wcześniej" }),
+      );
+      expect(graphic(1)).toBeChecked();
+      expect(title()).toHaveValue("Druga");
+      expect(region("Podgląd formatów · grafika 1 z 2")).toBeInTheDocument();
+
+      fireEvent.click(graphic(2));
+      expect(title()).toHaveValue("Pierwsza");
+    });
+
+    it("removes a graphic and goes back to a post of one", () => {
+      render(<ExportLab />);
+      setTitle("Pierwsza");
+      add();
+      setTitle("Druga");
+
+      fireEvent.click(screen.getByRole("button", { name: "Usuń grafikę 2" }));
+      expect(screen.getAllByRole("radio", { name: /^Grafika/ })).toHaveLength(
+        1,
+      );
+      expect(title()).toHaveValue("Pierwsza");
+      expect(region("Podgląd formatów")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /^Usuń grafikę/ }),
+      ).toBeNull();
+    });
+
+    it("marks the graphic whose text may be clipped", async () => {
+      vi.mocked(rasterizeGraphic).mockImplementation(
+        async (_template, content) => ({
+          blob: new Blob(["png"]),
+          hasOverflow: content.values.title === "Za długi",
+        }),
+      );
+      render(<ExportLab />);
+      add();
+      setTitle("Za długi");
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("radio", {
+            name: "Grafika 2: możliwe ucięcie treści",
+          }),
+        ).toBeInTheDocument(),
+      );
+      expect(
+        screen.getByRole("radio", { name: "Grafika 1" }),
+      ).toBeInTheDocument();
+    });
+
+    it("gives the composer every graphic once all of them are drawn", async () => {
+      useBufferSessionStore.setState({
+        status: "connected",
+        session: {
+          email: "marketing@gi.org.pl",
+          channels: [{ id: "ig", name: "GI Instagram", service: "instagram" }],
+        },
+      });
+      render(<ExportLab />);
+      add();
+      add();
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("radio", { name: "Wszystkie grafiki (3)" }),
+        ).toBeChecked(),
+      );
+    });
+  });
+
+  describe("when a graphic is edited after it was drawn", () => {
+    it("stops offering its old previews at once", async () => {
+      useBufferSessionStore.setState({
+        status: "connected",
+        session: {
+          email: "marketing@gi.org.pl",
+          channels: [{ id: "ig", name: "GI Instagram", service: "instagram" }],
+        },
+      });
+      render(<ExportLab />);
+      await waitFor(() =>
+        expect(screen.getAllByRole("link", { name: /^Pobierz/ })).toHaveLength(
+          4,
+        ),
+      );
+
+      fireEvent.change(screen.getByLabelText("Tytuł"), {
+        target: { value: "Nowy tytuł" },
+      });
+      // No waiting here: the previews of the old title must not survive the edit.
+      expect(screen.queryAllByRole("link", { name: /^Pobierz/ })).toHaveLength(
+        0,
+      );
+      expect(screen.getByText("Przygotowywanie…")).toBeVisible();
+      expect(
+        screen.getByText("Poczekaj, aż grafika się przygotuje."),
+      ).toBeInTheDocument();
+
+      await waitFor(() =>
+        expect(screen.getAllByRole("link", { name: /^Pobierz/ })).toHaveLength(
+          4,
+        ),
+      );
+    });
+  });
 });
