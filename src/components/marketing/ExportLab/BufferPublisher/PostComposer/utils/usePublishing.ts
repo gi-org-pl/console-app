@@ -6,7 +6,7 @@ import {
 import type { ChannelPublishResult, PlannedPost } from "../PostComposer.types";
 
 /**
- * Publishes posts one channel at a time. A retry of an unchanged post reuses its uploaded
+ * Publishes the entries of a run one at a time; a channel has one entry per kind (post, story). A retry of an unchanged post reuses its uploaded
  * images and idempotency key, so the Worker replays it instead of creating a duplicate.
  */
 export function usePublishing() {
@@ -29,23 +29,23 @@ export function usePublishing() {
     return pending;
   }
 
-  function requestIdFor(channelId: string, payload: object) {
+  function requestIdFor(entryKey: string, payload: object) {
     const key = JSON.stringify(payload);
-    const previous = attempts.current.get(channelId);
+    const previous = attempts.current.get(entryKey);
     if (previous?.key === key) return previous.requestId;
     const requestId = crypto.randomUUID();
-    attempts.current.set(channelId, { key, requestId });
+    attempts.current.set(entryKey, { key, requestId });
     return requestId;
   }
 
-  function setResult(channelId: string, result: ChannelPublishResult) {
-    setResults((prev) => ({ ...prev, [channelId]: result }));
+  function setResult(entryKey: string, result: ChannelPublishResult) {
+    setResults((prev) => ({ ...prev, [entryKey]: result }));
   }
 
   async function publish(posts: readonly PlannedPost[]) {
     setIsPublishing(true);
-    for (const { channelId, files, ...post } of posts) {
-      setResult(channelId, { status: "publishing" });
+    for (const { key, kind, channelId, files, ...post } of posts) {
+      setResult(key, { status: "publishing" });
       try {
         if (files.length === 0 || files.includes(undefined))
           throw new Error("Grafika nie jest jeszcze gotowa.");
@@ -68,14 +68,16 @@ export function usePublishing() {
           ...post,
           ...(mediaIds.length === 1 ? { mediaId: mediaIds[0] } : { mediaIds }),
           channelId,
+          // The type is named only for a story, so a post goes out as it always did.
+          ...(kind === "story" ? { type: kind } : {}),
         };
         const postId = await createBufferPost({
           ...payload,
-          requestId: requestIdFor(channelId, payload),
+          requestId: requestIdFor(key, payload),
         });
-        setResult(channelId, { status: "success", message: postId });
+        setResult(key, { status: "success", message: postId });
       } catch (cause) {
-        setResult(channelId, {
+        setResult(key, {
           status: "error",
           message:
             cause instanceof Error

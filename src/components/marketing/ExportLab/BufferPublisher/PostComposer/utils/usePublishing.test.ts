@@ -13,6 +13,8 @@ vi.mock("../../../../../../services/buffer/client/buffer.api", () => ({
 const MEDIA_ID = "d1b1e6c0-0000-4000-8000-000000000000";
 const file = new File(["png"], "square.png", { type: "image/png" });
 const post = (channelId: string, text = "Hej") => ({
+  key: channelId,
+  kind: "post" as const,
   channelId,
   files: [file],
   text,
@@ -184,6 +186,75 @@ describe("usePublishing", () => {
       );
       expect(uploadBufferMedia).not.toHaveBeenCalled();
       expect(createBufferPost).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("when a channel publishes a story", () => {
+    const story = (channelId: string) => ({
+      key: `${channelId}:story`,
+      kind: "story" as const,
+      channelId,
+      files: [file],
+      mode: "addToQueue" as const,
+    });
+
+    it("sends it with the story type and without a caption", async () => {
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([story("a")]));
+
+      const [input] = vi.mocked(createBufferPost).mock.calls[0];
+      expect(input).toMatchObject({
+        channelId: "a",
+        type: "story",
+        mediaId: MEDIA_ID,
+      });
+      expect(input).not.toHaveProperty("text");
+      expect(input).not.toHaveProperty("kind");
+      expect(input).not.toHaveProperty("key");
+    });
+
+    it("names no type for a post, so a post goes out as it always did", async () => {
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([post("a")]));
+
+      const [input] = vi.mocked(createBufferPost).mock.calls[0];
+      expect(input).not.toHaveProperty("type");
+      expect(input).not.toHaveProperty("kind");
+      expect(input).not.toHaveProperty("key");
+    });
+
+    it("keeps the post and the story of one channel apart: two requests, two results", async () => {
+      vi.mocked(createBufferPost)
+        .mockResolvedValueOnce("post-1")
+        .mockRejectedValueOnce(new Error("Buffer odmówił."));
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([post("a"), story("a")]));
+
+      expect(result.current.results).toEqual({
+        a: { status: "success", message: "post-1" },
+        "a:story": { status: "error", message: "Buffer odmówił." },
+      });
+      const [first, second] = vi
+        .mocked(createBufferPost)
+        .mock.calls.map(([input]) => input.requestId);
+      expect(second).not.toBe(first);
+      // The same image in the same format is uploaded once for both.
+      expect(uploadBufferMedia).toHaveBeenCalledTimes(1);
+    });
+
+    it("reuses the request ID of the story when only the story is retried", async () => {
+      vi.mocked(createBufferPost)
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValueOnce("post-2");
+      const { result } = renderHook(() => usePublishing());
+      await act(() => result.current.publish([story("a")]));
+      await act(() => result.current.publish([story("a")]));
+
+      const [first, second] = vi
+        .mocked(createBufferPost)
+        .mock.calls.map(([input]) => input.requestId);
+      expect(second).toBe(first);
+      expect(result.current.results["a:story"].status).toBe("success");
     });
   });
 });

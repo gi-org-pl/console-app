@@ -18,7 +18,7 @@ import {
   type BufferPublishMode,
   MAX_POST_TEXT_LENGTH,
 } from "../../../../../services/buffer/schemas/buffer.schemas";
-import type { ImageScope } from "./PostComposer.types";
+import type { ImageScope, PostKind } from "./PostComposer.types";
 
 export interface ServiceInfo {
   label: string;
@@ -34,6 +34,8 @@ export interface ServiceInfo {
   defaultImageScope: ImageScope;
   /** Why the default is what it is, shown next to the choice. */
   imageScopeHint: string;
+  /** Whether a channel of this network can publish the 9:16 format as a story. */
+  hasStories: boolean;
 }
 
 const SINGLE_IMAGE = {
@@ -41,6 +43,7 @@ const SINGLE_IMAGE = {
   defaultImageScope: "first",
   imageScopeHint:
     "Ten kanał przyjmuje jedną grafikę w poście, więc dostaje pierwszą.",
+  hasStories: false,
 } as const;
 
 export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
@@ -54,6 +57,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     defaultImageScope: "first",
     imageScopeHint:
       "Facebook układa kilka grafik w kolaż, więc domyślnie dostaje tylko pierwszą.",
+    hasStories: true,
   },
   instagram: {
     label: "Instagram",
@@ -66,6 +70,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     defaultImageScope: "all",
     imageScopeHint:
       "Instagram pokaże grafiki jako karuzelę, w proporcjach pierwszej z nich.",
+    hasStories: true,
   },
   linkedin: {
     label: "LinkedIn",
@@ -77,6 +82,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     defaultImageScope: "first",
     imageScopeHint:
       "LinkedIn układa kilka grafik w kolaż, więc domyślnie dostaje tylko pierwszą.",
+    hasStories: false,
   },
   threads: {
     label: "Threads",
@@ -145,3 +151,14 @@ export const PUBLISH_MODES: readonly PublishModeOption[] = [
 ];
 
 export const DEFAULT_FORMAT_ID = "portrait";
+/** The format a story is published in. */
+export const STORY_FORMAT_ID = "story";
+
+export const POST_KIND_LABELS: Record<PostKind, string> = {
+  post: "Post",
+  story: "Relacja",
+};
+
+/** Names one entry of a run among its results; a post keeps the ID of its channel. */
+export const getEntryKey = (channelId: string, kind: PostKind) =>
+  kind === "post" ? channelId : `${channelId}:${kind}`;

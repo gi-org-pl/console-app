@@ -497,6 +497,59 @@ test.describe("Feature: Marketing graphics export", () => {
     });
   });
 
+  test("Scenario: one graphic goes to Instagram as a post and as a story", async ({
+    page,
+  }) => {
+    const worker = await stubBufferWorker(page, { isLoggedIn: true });
+    const instagram = page.getByRole("checkbox", { name: /Fundacja GI/ });
+
+    await test.step("Given the operator is logged in and the graphic is ready", async () => {
+      await page.goto("./marketing");
+      await waitForPreviews(page);
+    });
+
+    await test.step("When they pick Instagram, add the story next to the post and queue it", async () => {
+      await page.locator("label", { has: instagram }).click();
+      await expect(instagram).toBeChecked();
+      const kinds = page.getByRole("group", {
+        name: "Publikuj jako: Fundacja GI",
+      });
+      await expect(kinds.getByRole("checkbox", { name: "Post" })).toBeChecked();
+      await kinds.getByText("Relacja").click();
+      await expect(
+        kinds.getByRole("checkbox", { name: "Relacja" }),
+      ).toBeChecked();
+      await page.getByLabel("Treść", { exact: true }).fill("Nowość w fundacji");
+      await page.getByRole("button", { name: "Dodaj do kolejki" }).click();
+    });
+
+    await test.step("Then Buffer gets a feed post with the caption and a story without one", async () => {
+      await expect(
+        page.getByRole("heading", { name: "Dodano do kolejki" }),
+      ).toBeVisible();
+      await expect(page.getByText("· relacja")).toBeVisible();
+      // Two formats of the same graphic: 4:5 for the post, 9:16 for the story.
+      expect(worker.uploadCount()).toBe(2);
+      expect(worker.posts).toHaveLength(2);
+      const [feed, story] = worker.posts;
+      expect(feed).toMatchObject({
+        channelId: "ig",
+        mediaId: mediaIdOf(1),
+        text: "Nowość w fundacji",
+        mode: "addToQueue",
+      });
+      expect(feed).not.toHaveProperty("type");
+      expect(story).toMatchObject({
+        channelId: "ig",
+        type: "story",
+        mediaId: mediaIdOf(2),
+        mode: "addToQueue",
+      });
+      expect(story).not.toHaveProperty("text");
+      expect(story.requestId).not.toBe(feed.requestId);
+    });
+  });
+
   test("Scenario: a visitor downloads graphics without logging in", async ({
     page,
   }) => {

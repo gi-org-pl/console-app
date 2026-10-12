@@ -10,12 +10,17 @@ import { GRAPHIC_FORMATS } from "../../../ExportLab.constants";
 import type { Preview } from "../../../ExportLab.types";
 import CaptionField from "../CaptionField/CaptionField";
 import FormatPicker from "../FormatPicker/FormatPicker";
-import { SERVICES } from "../PostComposer.constants";
+import {
+  POST_KIND_LABELS,
+  SERVICES,
+  STORY_FORMAT_ID,
+} from "../PostComposer.constants";
 import type {
   ChannelPublishResult,
   ImageScope,
   PostContent,
   PostIssue,
+  PostKind,
 } from "../PostComposer.types";
 
 interface Props {
@@ -28,16 +33,20 @@ interface Props {
   graphicCount: number;
   /** Whether this channel gets every graphic or the first only. */
   imageScope: ImageScope;
+  /** What this channel publishes: a post, a story, or both. Never empty. */
+  kinds: readonly PostKind[];
   issues: readonly PostIssue[];
-  result?: ChannelPublishResult;
+  /** The result of each kind this channel publishes, once it was sent. */
+  results: Readonly<Partial<Record<PostKind, ChannelPublishResult>>>;
   isDisabled: boolean;
   onCustomize: () => void;
   onReset: () => void;
   onChange: (content: PostContent) => void;
   onImageScopeChange: (imageScope: ImageScope) => void;
+  onKindsChange: (kinds: readonly PostKind[]) => void;
 }
 
-const SCOPE_OPTION_CLASS_NAME =
+const OPTION_CLASS_NAME =
   "cursor-pointer rounded-lg border border-app-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-app-hover has-checked:border-app-accent has-checked:bg-app-accent/10 has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-app-focus";
 
 const RESULT_BADGE: Record<
@@ -52,6 +61,8 @@ const RESULT_BADGE: Record<
 const BUTTON_CLASS_NAME =
   "inline-flex shrink-0 items-center gap-2 rounded-lg border border-app-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-app-hover disabled:cursor-not-allowed disabled:opacity-60";
 
+const KINDS: readonly PostKind[] = ["post", "story"];
+
 /** What goes to one channel, with the option to give it its own graphic and caption. */
 const ChannelRow = ({
   channel,
@@ -60,30 +71,50 @@ const ChannelRow = ({
   images,
   graphicCount,
   imageScope,
+  kinds,
   issues,
-  result,
+  results,
   isDisabled,
   onCustomize,
   onReset,
   onChange,
   onImageScopeChange,
+  onKindsChange,
 }: Props) => {
   const info = SERVICES[channel.service];
-  const image = images.find(({ formatId }) => formatId === content.formatId);
-  const format = GRAPHIC_FORMATS.find(({ id }) => id === content.formatId);
+  const hasPost = kinds.includes("post");
+  const hasStory = kinds.includes("story");
+  // The row shows what the channel publishes: its post, or its story when that is all.
+  const shownFormatId = hasPost ? content.formatId : STORY_FORMAT_ID;
+  const image = images.find(({ formatId }) => formatId === shownFormatId);
+  const format = GRAPHIC_FORMATS.find(({ id }) => id === shownFormatId);
   // An empty caption is reported once by the publish bar, not on every row.
   const errors = issues.filter(
     ({ level, code }) => level === "error" && code !== "empty",
   );
-  const isPublished = result?.status === "success";
+  const sent = kinds.map((kind) => ({ kind, result: results[kind] }));
+  const failures = sent.filter(({ result }) => result?.status === "error");
+  const hasResults = sent.some(({ result }) => result);
+  // Once everything this channel publishes is out, there is nothing left to change.
+  const isPublished = sent.every(({ result }) => result?.status === "success");
   const hasSeveralGraphics = graphicCount > 1;
   // A network that takes one image has nothing to choose from.
   const canChooseScope = info.maxImages > 1;
-  const sentCount = imageScope === "all" ? graphicCount : 1;
+  const sentCount = hasPost && imageScope === "all" ? graphicCount : 1;
   const scopeOptions: readonly { value: ImageScope; label: string }[] = [
     { value: "all", label: `Wszystkie grafiki (${graphicCount})` },
     { value: "first", label: "Tylko pierwsza" },
   ];
+
+  function toggleKind(kind: PostKind) {
+    const next = KINDS.filter((candidate) =>
+      candidate === kind ? !kinds.includes(kind) : kinds.includes(candidate),
+    );
+    // A channel publishes something: taking away its only kind gives it the other.
+    onKindsChange(
+      next.length > 0 ? next : KINDS.filter((candidate) => candidate !== kind),
+    );
+  }
 
   return (
     <li className="overflow-hidden rounded-lg border border-app-border">
@@ -119,15 +150,34 @@ const ChannelRow = ({
           </strong>
           <span className="block truncate text-sm text-app-muted">
             {info.label} · {format?.ratio} ·{" "}
-            {hasSeveralGraphics &&
-              `${sentCount === 1 ? "1 grafika" : `grafik: ${sentCount}`} · `}
-            {isCustomized ? "własna treść" : "wspólna treść"}
+            {hasPost ? (
+              <>
+                {hasSeveralGraphics &&
+                  `${sentCount === 1 ? "1 grafika" : `grafik: ${sentCount}`} · `}
+                {isCustomized ? "własna treść" : "wspólna treść"}
+                {hasStory && " · oraz relacja"}
+              </>
+            ) : (
+              "relacja bez podpisu"
+            )}
           </span>
         </div>
-        {result ? (
-          <Badge variant="secondary" type={RESULT_BADGE[result.status].type}>
-            {RESULT_BADGE[result.status].label}
-          </Badge>
+        {hasResults ? (
+          <span className="flex shrink-0 flex-wrap justify-end gap-1">
+            {sent.map(
+              ({ kind, result }) =>
+                result && (
+                  <Badge
+                    key={kind}
+                    variant="secondary"
+                    type={RESULT_BADGE[result.status].type}
+                  >
+                    {kinds.length > 1 && `${POST_KIND_LABELS[kind]}: `}
+                    {RESULT_BADGE[result.status].label}
+                  </Badge>
+                ),
+            )}
+          </span>
         ) : (
           errors.length > 0 && (
             <FontAwesomeIcon
@@ -137,7 +187,7 @@ const ChannelRow = ({
             />
           )
         )}
-        {!isPublished && (
+        {hasPost && !isPublished && (
           <button
             type="button"
             disabled={isDisabled}
@@ -152,7 +202,7 @@ const ChannelRow = ({
           </button>
         )}
       </div>
-      {(errors.length > 0 || result?.status === "error") && (
+      {(errors.length > 0 || failures.length > 0) && (
         <ul
           role="alert"
           className="grid gap-1 border-t border-app-border px-3 py-2 text-sm text-app-error"
@@ -160,10 +210,45 @@ const ChannelRow = ({
           {errors.map(({ message }) => (
             <li key={message}>{message}</li>
           ))}
-          {result?.status === "error" && <li>{result.message}</li>}
+          {failures.map(({ kind, result }) => (
+            <li key={kind}>
+              {kinds.length > 1 && `${POST_KIND_LABELS[kind]}: `}
+              {result?.message}
+            </li>
+          ))}
         </ul>
       )}
-      {hasSeveralGraphics && !isPublished && (
+      {info.hasStories && !isPublished && (
+        <div className="grid gap-2 border-t border-app-border px-3 py-2">
+          <div
+            role="group"
+            aria-label={`Publikuj jako: ${channel.name}`}
+            className="flex flex-wrap gap-2"
+          >
+            {KINDS.map((kind) => {
+              const isChosen = kinds.includes(kind);
+              return (
+                <label key={kind} className={OPTION_CLASS_NAME}>
+                  <input
+                    type="checkbox"
+                    checked={isChosen}
+                    disabled={isDisabled}
+                    onChange={() => toggleKind(kind)}
+                    className="sr-only"
+                  />
+                  {POST_KIND_LABELS[kind]}
+                </label>
+              );
+            })}
+          </div>
+          {hasStory && (
+            <p className="text-sm text-app-muted">
+              Relacja to pierwsza grafika w formacie 9:16, bez podpisu.
+            </p>
+          )}
+        </div>
+      )}
+      {hasPost && hasSeveralGraphics && !isPublished && (
         <div className="grid gap-2 border-t border-app-border px-3 py-2">
           {canChooseScope && (
             <div
@@ -172,7 +257,7 @@ const ChannelRow = ({
               className="flex flex-wrap gap-2"
             >
               {scopeOptions.map(({ value, label }) => (
-                <label key={value} className={SCOPE_OPTION_CLASS_NAME}>
+                <label key={value} className={OPTION_CLASS_NAME}>
                   <input
                     type="radio"
                     name={`image-scope-${channel.id}`}
@@ -190,7 +275,7 @@ const ChannelRow = ({
           <p className="text-sm text-app-muted">{info.imageScopeHint}</p>
         </div>
       )}
-      {isCustomized && !isPublished && (
+      {hasPost && isCustomized && !isPublished && (
         <div className="grid gap-4 border-t border-app-border bg-app-surface-2/40 p-3">
           <FormatPicker
             name={`format-${channel.id}`}

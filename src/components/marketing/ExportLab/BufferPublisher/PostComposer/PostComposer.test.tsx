@@ -472,4 +472,178 @@ describe("<PostComposer />", () => {
       expect(scope("GI LinkedIn", "Tylko pierwsza")).toBeChecked();
     });
   });
+
+  describe("when a channel can publish a story", () => {
+    const kind = (channel: string, name: string) =>
+      within(
+        screen.getByRole("group", { name: `Publikuj jako: ${channel}` }),
+      ).getByRole("checkbox", { name });
+    const sent = () =>
+      vi.mocked(createBufferPost).mock.calls.map(([input]) => input);
+    const queue = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Dodaj do kolejki" }));
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent("Dodano"),
+      );
+    };
+
+    beforeEach(() => {
+      // The media ID of an upload is the name of its file, so the format can be read back.
+      vi.mocked(uploadBufferMedia).mockImplementation(
+        async (png) => (png as File).name,
+      );
+    });
+
+    it("offers a post and a story on Instagram, a post only elsewhere", () => {
+      renderComposer();
+      select(/GI Instagram/);
+      select(/GI X/);
+
+      expect(kind("GI Instagram", "Post")).toBeChecked();
+      expect(kind("GI Instagram", "Relacja")).not.toBeChecked();
+      expect(
+        screen.queryByRole("group", { name: "Publikuj jako: GI X" }),
+      ).toBeNull();
+    });
+
+    it("never leaves a channel with nothing to publish: its only kind turns into the other", () => {
+      renderComposer();
+      select(/GI Instagram/);
+      const chosen = () =>
+        ["Post", "Relacja"].filter(
+          (name) => (kind("GI Instagram", name) as HTMLInputElement).checked,
+        );
+      expect(chosen()).toEqual(["Post"]);
+
+      fireEvent.click(kind("GI Instagram", "Post"));
+      expect(chosen()).toEqual(["Relacja"]);
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      expect(chosen()).toEqual(["Post"]);
+
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      expect(chosen()).toEqual(["Post", "Relacja"]);
+      fireEvent.click(kind("GI Instagram", "Post"));
+      expect(chosen()).toEqual(["Relacja"]);
+      expect(kind("GI Instagram", "Relacja")).toBeEnabled();
+    });
+
+    it("publishes a story alone without asking for a caption", async () => {
+      renderComposer();
+      select(/GI Instagram/);
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      fireEvent.click(kind("GI Instagram", "Post"));
+
+      expect(
+        screen.getByText(/9:16 · relacja bez podpisu/),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Dostosuj: GI Instagram" }),
+      ).toBeNull();
+      expect(screen.queryByTitle("Instagram: limit 2200 znaków")).toBeNull();
+      expect(publishButton()).toBeEnabled();
+      await queue();
+
+      expect(sent()).toHaveLength(1);
+      expect(sent()[0]).toMatchObject({
+        channelId: "ig",
+        type: "story",
+        mediaId: "story.png",
+      });
+      expect(sent()[0]).not.toHaveProperty("text");
+    });
+
+    it("publishes a post and a story of the same material as two posts of one channel", async () => {
+      renderComposer();
+      select(/GI Instagram/);
+      write("Nowość");
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      expect(
+        screen.getByText(
+          "Relacja to pierwsza grafika w formacie 9:16, bez podpisu.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/wspólna treść · oraz relacja/),
+      ).toBeInTheDocument();
+      await queue();
+
+      expect(sent()).toHaveLength(2);
+      const [feed, story] = sent();
+      expect(feed).toMatchObject({
+        channelId: "ig",
+        mediaId: "portrait.png",
+        text: "Nowość",
+      });
+      expect(feed).not.toHaveProperty("type");
+      expect(story).toMatchObject({
+        channelId: "ig",
+        type: "story",
+        mediaId: "story.png",
+      });
+      expect(story).not.toHaveProperty("text");
+      expect(story.requestId).not.toBe(feed.requestId);
+      // The confirmation lists the story as an entry of its own.
+      expect(screen.getAllByRole("listitem")).toHaveLength(2);
+      expect(screen.getByText("· relacja")).toBeInTheDocument();
+    });
+
+    it("still asks for a caption when the channel publishes a post next to the story", () => {
+      renderComposer();
+      select(/GI Instagram/);
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      expect(status()).toHaveTextContent("Dodaj treść posta.");
+      expect(publishButton()).toBeDisabled();
+    });
+
+    it("shows each result on the row and retries only what failed", async () => {
+      vi.mocked(createBufferPost)
+        .mockResolvedValueOnce("post-1")
+        .mockRejectedValueOnce(new Error("Buffer odmówił relacji."))
+        .mockResolvedValueOnce("post-2");
+      renderComposer();
+      select(/GI Instagram/);
+      write("Nowość");
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      fireEvent.click(screen.getByRole("button", { name: "Dodaj do kolejki" }));
+
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Relacja: Buffer odmówił relacji.",
+        ),
+      );
+      expect(screen.getByText("Post: Wysłano")).toBeInTheDocument();
+      expect(screen.getByText("Relacja: Błąd")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Ponów nieudane" }));
+      await waitFor(() =>
+        expect(screen.getByRole("status")).toHaveTextContent("Dodano"),
+      );
+      expect(sent()).toHaveLength(3);
+      expect(sent()[2]).toMatchObject({ type: "story" });
+      expect(sent()[2].requestId).toBe(sent()[1].requestId);
+    });
+
+    it("points at the story when the 9:16 format is chosen for a post", () => {
+      renderComposer();
+      select(/GI Instagram/);
+      write("Hej");
+      fireEvent.click(
+        screen.getByRole("radio", { name: "Story / Reels (9:16)" }),
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Instagram nie opublikuje formatu 9:16 jako posta. Wybierz inny format albo opublikuj go jako relację.",
+      );
+    });
+
+    it("forgets the choice when a new post is started", async () => {
+      renderComposer({ ...SESSION, channels: [SESSION.channels[0]] });
+      fireEvent.click(kind("GI Instagram", "Relacja"));
+      fireEvent.click(kind("GI Instagram", "Post"));
+      await queue();
+
+      fireEvent.click(screen.getByRole("button", { name: "Nowa publikacja" }));
+      expect(kind("GI Instagram", "Post")).toBeChecked();
+      expect(kind("GI Instagram", "Relacja")).not.toBeChecked();
+    });
+  });
 });

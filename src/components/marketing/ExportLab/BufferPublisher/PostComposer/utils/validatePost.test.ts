@@ -78,4 +78,15 @@ describe("getPostIssues", () => {
       expect(codes("mastodon", content)).toEqual([]);
     });
   });
+
+  describe("when a network with stories gets the story format as a post", () => {
+    it("says that it can go out as a story", () => {
+      expect(
+        getPostIssues("instagram", { formatId: "story", text: "Hej" })[0]
+          .message,
+      ).toBe(
+        "Instagram nie opublikuje formatu 9:16 jako posta. Wybierz inny format albo opublikuj go jako relację.",
+      );
+    });
+  });
 });

@@ -10,9 +10,11 @@ import type {
   BufferPublishMode,
 } from "../../../../../../services/buffer/schemas/buffer.schemas";
 import { SERVICES } from "../PostComposer.constants";
+import type { PostKind } from "../PostComposer.types";
 
 interface Props {
-  channels: readonly BufferChannel[];
+  /** What was sent: one entry per channel and kind, so a story shows next to the post of its channel. */
+  entries: readonly { channel: BufferChannel; kind: PostKind; key: string }[];
   mode: BufferPublishMode;
   dueAt: string;
   onStartOver: () => void;
@@ -27,7 +29,7 @@ function describe(mode: BufferPublishMode, dueAt: string) {
   })}`;
 }
 
-const PublishSuccess = ({ channels, mode, dueAt, onStartOver }: Props) => (
+const PublishSuccess = ({ entries, mode, dueAt, onStartOver }: Props) => (
   <div
     role="status"
     className="grid justify-items-center gap-4 rounded-xl border border-app-border bg-app-surface p-8 text-center"
@@ -45,13 +47,16 @@ const PublishSuccess = ({ channels, mode, dueAt, onStartOver }: Props) => (
       </p>
     </div>
     <ul className="flex flex-wrap justify-center gap-2">
-      {channels.map((channel) => (
+      {entries.map(({ channel, kind, key }) => (
         <li
-          key={channel.id}
+          key={key}
           className="inline-flex items-center gap-2 rounded-full border border-app-border px-3 py-1 text-sm"
         >
           <FontAwesomeIcon icon={SERVICES[channel.service].icon} />
           {channel.name}
+          {kind === "story" && (
+            <span className="text-app-muted">· relacja</span>
+          )}
         </li>
       ))}
     </ul>
