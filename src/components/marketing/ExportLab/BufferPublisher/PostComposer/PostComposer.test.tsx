@@ -37,7 +37,10 @@ const image = (formatId: string): Preview => ({
 });
 const IMAGES = ["square", "portrait", "story", "landscape"].map(image);
 
-const renderComposer = (session: BufferSession = SESSION, graphicStatus = "ready" as const) =>
+const renderComposer = (
+  session: BufferSession = SESSION,
+  graphicStatus = "ready" as const,
+) =>
   render(
     <PostComposer
       session={session}
