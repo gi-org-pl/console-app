@@ -19,6 +19,57 @@ const choose = async (page: Page, name: string | RegExp) => {
 const waitForPreviews = (page: Page) =>
   expect(page.getByRole("link", { name: /^Pobierz/ })).toHaveCount(4);
 
+// Every exported card carries the bar: a black strip at the top of the card,
+// below the frame on a story, with the signs on its left half and the sentence
+// on its right half.
+const expectFundingBar = async (page: Page) => {
+  for (const format of FORMATS) {
+    const image = page.getByRole("img", {
+      name: new RegExp(`^${format.name}:`),
+    });
+    const pixels = await image.evaluate((img: HTMLImageElement) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(img, 0, 0);
+      const barTop = img.naturalHeight === 1920 ? 325 : 0;
+      const top = context.getImageData(0, barTop, canvas.width, 160).data;
+      let leftWhite = 0;
+      let rightWhite = 0;
+      for (let y = 32; y < 155; y++) {
+        for (let x = 64; x < canvas.width - 64; x++) {
+          const offset = (y * canvas.width + x) * 4;
+          if (
+            top[offset] > 220 &&
+            top[offset + 1] > 220 &&
+            top[offset + 2] > 220
+          ) {
+            if (x < canvas.width / 2) leftWhite++;
+            else rightWhite++;
+          }
+        }
+      }
+      return {
+        blackBar: Array.from(
+          top.slice(
+            (8 * canvas.width + canvas.width / 2) * 4,
+            (8 * canvas.width + canvas.width / 2) * 4 + 4,
+          ),
+        ),
+        leftWhite,
+        rightWhite,
+      };
+    });
+    expect(pixels.blackBar.slice(0, 3).every((channel) => channel < 10)).toBe(
+      true,
+    );
+    expect(pixels.blackBar[3]).toBe(255);
+    expect(pixels.leftWhite).toBeGreaterThan(100);
+    expect(pixels.rightWhite).toBeGreaterThan(100);
+  }
+};
+
 test.describe("Feature: Marketing graphics export", () => {
   test.beforeEach(async ({ page }) => {
     await stubBufferWorker(page);
@@ -172,51 +223,7 @@ test.describe("Feature: Marketing graphics export", () => {
     await choose(page, "PROO");
     await waitForPreviews(page);
 
-    for (const format of FORMATS) {
-      const image = page.getByRole("img", {
-        name: new RegExp(`^${format.name}:`),
-      });
-      const pixels = await image.evaluate((img: HTMLImageElement) => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const context = canvas.getContext("2d")!;
-        context.drawImage(img, 0, 0);
-        const barTop = img.naturalHeight === 1920 ? 325 : 0;
-        const top = context.getImageData(0, barTop, canvas.width, 160).data;
-        let leftWhite = 0;
-        let rightWhite = 0;
-        for (let y = 32; y < 155; y++) {
-          for (let x = 64; x < canvas.width - 64; x++) {
-            const offset = (y * canvas.width + x) * 4;
-            if (
-              top[offset] > 220 &&
-              top[offset + 1] > 220 &&
-              top[offset + 2] > 220
-            ) {
-              if (x < canvas.width / 2) leftWhite++;
-              else rightWhite++;
-            }
-          }
-        }
-        return {
-          blackBar: Array.from(
-            top.slice(
-              (8 * canvas.width + canvas.width / 2) * 4,
-              (8 * canvas.width + canvas.width / 2) * 4 + 4,
-            ),
-          ),
-          leftWhite,
-          rightWhite,
-        };
-      });
-      expect(pixels.blackBar.slice(0, 3).every((channel) => channel < 10)).toBe(
-        true,
-      );
-      expect(pixels.blackBar[3]).toBe(255);
-      expect(pixels.leftWhite).toBeGreaterThan(100);
-      expect(pixels.rightWhite).toBeGreaterThan(100);
-    }
+    await expectFundingBar(page);
 
     await page.screenshot({
       path: info.outputPath("proo-selected.png"),
@@ -226,6 +233,32 @@ test.describe("Feature: Marketing graphics export", () => {
     await choose(page, "Bez belki");
     await expect(square).not.toHaveAttribute("src", withFunding!);
     await waitForPreviews(page);
+  });
+
+  test("Scenario: Fundusz Młodzieżowy puts its signs and sentence inside every exported card", async ({
+    page,
+  }, info) => {
+    await page.goto("./marketing");
+    await waitForPreviews(page);
+    const square = page.getByRole("img", { name: /^Post kwadratowy:/ });
+    const withProo = await square.getAttribute("src");
+
+    await choose(page, "Fundusz Młodzieżowy");
+    await expect(square).not.toHaveAttribute("src", withProo!);
+    await waitForPreviews(page);
+
+    await expect(
+      page.getByRole("img", { name: /Finansowanie: Fundusz Młodzieżowy\.$/ }),
+    ).toHaveCount(FORMATS.length);
+    await expectFundingBar(page);
+    await expect(
+      page.getByText("Treść nie mieści się", { exact: false }),
+    ).toHaveCount(0);
+
+    await page.screenshot({
+      path: info.outputPath("fm-selected.png"),
+      fullPage: true,
+    });
   });
 
   test("Scenario: exporting every format of the default template", async ({
