@@ -9,6 +9,7 @@ import {
   createBufferPost,
   uploadBufferMedia,
 } from "../../../../../services/buffer/client/buffer.api";
+import type { BufferSession } from "../../../../../services/buffer/schemas/buffer.schemas";
 import { BufferApiError } from "../../../../../services/buffer/utils/BufferApiError";
 import type { Preview } from "../../ExportLab.types";
 import PostComposer from "./PostComposer";
@@ -36,7 +37,7 @@ const image = (formatId: string): Preview => ({
 });
 const IMAGES = ["square", "portrait", "story", "landscape"].map(image);
 
-const renderComposer = (session = SESSION, graphicStatus = "ready" as const) =>
+const renderComposer = (session: BufferSession = SESSION, graphicStatus = "ready" as const) =>
   render(
     <PostComposer
       session={session}
@@ -503,6 +504,23 @@ describe("<PostComposer />", () => {
       expect(kind("GI Instagram", "Relacja")).not.toBeChecked();
       expect(
         screen.queryByRole("group", { name: "Publikuj jako: GI X" }),
+      ).toBeNull();
+    });
+
+    it("offers the story to an Instagram channel but not to a Facebook one", () => {
+      renderComposer({
+        ...SESSION,
+        channels: [
+          { id: "ig", name: "GI Instagram", service: "instagram" as const },
+          { id: "fb", name: "GI Facebook", service: "facebook" as const },
+        ],
+      });
+      select(/GI Instagram/);
+      select(/GI Facebook/);
+
+      expect(kind("GI Instagram", "Relacja")).toBeEnabled();
+      expect(
+        screen.queryByRole("group", { name: "Publikuj jako: GI Facebook" }),
       ).toBeNull();
     });
 
