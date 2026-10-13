@@ -10,6 +10,8 @@ interface Props {
   format: GraphicFormat;
   preview?: Preview;
   description: string;
+  /** Number of the graphic in a post with several; it goes into the name of the downloaded file. */
+  fileNumber?: number;
   isRendering: boolean;
   areActionsDisabled: boolean;
 }
@@ -21,6 +23,7 @@ const PreviewCard = ({
   format,
   preview,
   description,
+  fileNumber,
   isRendering,
   areActionsDisabled,
 }: Props) => {
@@ -125,7 +128,11 @@ const PreviewCard = ({
         {/* Without href a disabled link is neither focusable nor announced as a link. */}
         <a
           href={isDisabled ? undefined : preview?.url}
-          download={preview?.file.name}
+          download={
+            fileNumber
+              ? preview?.file.name.replace(/^gi-/, `gi-${fileNumber}-`)
+              : preview?.file.name
+          }
           aria-label={`Pobierz ${format.name} PNG`}
           title="Pobierz PNG"
         >

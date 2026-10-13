@@ -10,9 +10,18 @@ interface Props {
   /** Text alternative shared by all formats, built from the template fields. */
   description: string;
   isPhotoLoading: boolean;
+  /** Which graphic of the post is shown; a post with one graphic needs no word about it. */
+  position?: { number: number; count: number };
 }
 
-const PreviewPanel = ({ state, description, isPhotoLoading }: Props) => {
+const PreviewPanel = ({
+  state,
+  description,
+  isPhotoLoading,
+  position,
+}: Props) => {
+  const isOneOfSeveral = !!position && position.count > 1;
+
   return (
     <section
       className="min-w-0"
@@ -21,7 +30,11 @@ const PreviewPanel = ({ state, description, isPhotoLoading }: Props) => {
     >
       <SectionHeading
         id="preview-title"
-        title="Podgląd formatów"
+        title={
+          isOneOfSeveral
+            ? `Podgląd formatów · grafika ${position.number} z ${position.count}`
+            : "Podgląd formatów"
+        }
         className="mb-4"
         aside={
           <Badge
@@ -47,6 +60,7 @@ const PreviewPanel = ({ state, description, isPhotoLoading }: Props) => {
               (preview) => preview.formatId === format.id,
             )}
             description={description}
+            fileNumber={isOneOfSeveral ? position.number : undefined}
             isRendering={state.status === "rendering"}
             areActionsDisabled={isPhotoLoading}
           />

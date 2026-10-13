@@ -7,7 +7,7 @@ import type { ChannelPublishResult, PlannedPost } from "../PostComposer.types";
 
 /**
  * Publishes posts one channel at a time. A retry of an unchanged post reuses its uploaded
- * image and idempotency key, so the Worker replays it instead of creating a duplicate.
+ * images and idempotency key, so the Worker replays it instead of creating a duplicate.
  */
 export function usePublishing() {
   const uploads = useRef(new WeakMap<File, Promise<string>>());
@@ -44,12 +44,31 @@ export function usePublishing() {
 
   async function publish(posts: readonly PlannedPost[]) {
     setIsPublishing(true);
-    for (const { channelId, file, ...post } of posts) {
+    for (const { channelId, files, ...post } of posts) {
       setResult(channelId, { status: "publishing" });
       try {
-        if (!file) throw new Error("Grafika nie jest jeszcze gotowa.");
-        const mediaId = await upload(file);
-        const payload = { ...post, mediaId, channelId };
+        if (files.length === 0 || files.includes(undefined))
+          throw new Error("Grafika nie jest jeszcze gotowa.");
+        // Every image is uploaded before the post is created: one that fails
+        // leaves the channel without a post, and the message says which one.
+        const mediaIds: string[] = [];
+        for (const [index, file] of (files as File[]).entries()) {
+          try {
+            mediaIds.push(await upload(file));
+          } catch (cause) {
+            if (files.length === 1) throw cause;
+            throw new Error(
+              `Nie udało się wysłać grafiki ${index + 1}${cause instanceof Error ? `: ${cause.message}` : "."}`,
+            );
+          }
+        }
+        // One image goes out the way it always did, so a post with a single
+        // graphic does not depend on the Worker knowing the list.
+        const payload = {
+          ...post,
+          ...(mediaIds.length === 1 ? { mediaId: mediaIds[0] } : { mediaIds }),
+          channelId,
+        };
         const postId = await createBufferPost({
           ...payload,
           requestId: requestIdFor(channelId, payload),

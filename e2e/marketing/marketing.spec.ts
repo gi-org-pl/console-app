@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { MEDIA_ID, stubBufferWorker } from "../bufferWorker";
+import { MEDIA_ID, mediaIdOf, stubBufferWorker } from "../bufferWorker";
 
 const FORMATS = [
   { name: "Post kwadratowy", id: "square", width: 1080, height: 1080 },
@@ -455,6 +455,78 @@ test.describe("Feature: Marketing graphics export", () => {
           mode: "shareNow",
         });
       }
+    });
+  });
+
+  test("Scenario: a post with three graphics goes to Instagram whole and to LinkedIn with the first one", async ({
+    page,
+  }) => {
+    const worker = await stubBufferWorker(page, { isLoggedIn: true });
+    const title = page.getByLabel("Tytuł", { exact: true });
+    const addGraphic = page.getByRole("button", { name: "Dodaj grafikę" });
+
+    await test.step("Given the operator is logged in and the first graphic is ready", async () => {
+      await page.goto("./marketing");
+      await waitForPreviews(page);
+      await title.fill("Pierwsza grafika");
+    });
+
+    await test.step("When they add two more graphics, the second one from another template", async () => {
+      await addGraphic.click();
+      await choose(page, "News");
+      await title.fill("Druga grafika");
+      await addGraphic.click();
+      await title.fill("Trzecia grafika");
+
+      await expect(page.getByRole("radio", { name: /^Grafika/ })).toHaveCount(
+        3,
+      );
+      await expect(
+        page.getByRole("region", { name: "Podgląd formatów · grafika 3 z 3" }),
+      ).toBeVisible();
+      // The copy keeps the template of the graphic it was made from.
+      await expect(page.getByRole("radio", { name: "News" })).toBeChecked();
+      await page
+        .getByRole("radio", { name: "Grafika 1" })
+        .check({ force: true });
+      await expect(title).toHaveValue("Pierwsza grafika");
+      await expect(page.getByRole("radio", { name: "Standard" })).toBeChecked();
+    });
+
+    await test.step("And they pick both channels, leave the defaults and add the post to the queue", async () => {
+      await page.getByRole("button", { name: "Zaznacz wszystkie" }).click();
+      await expect(
+        page
+          .getByRole("radiogroup", { name: "Grafiki dla: Fundacja GI" })
+          .getByRole("radio", { name: "Wszystkie grafiki (3)" }),
+      ).toBeChecked();
+      await expect(
+        page
+          .getByRole("radiogroup", { name: "Grafiki dla: Generacja Innowacja" })
+          .getByRole("radio", { name: "Tylko pierwsza" }),
+      ).toBeChecked();
+      await page
+        .getByLabel("Treść", { exact: true })
+        .fill("Seria trzech grafik");
+      await page.getByRole("button", { name: "Dodaj do kolejki" }).click();
+    });
+
+    await test.step("Then Instagram gets one post with the three images in order and LinkedIn one with the first", async () => {
+      await expect(
+        page.getByRole("heading", { name: "Dodano do kolejki" }),
+      ).toBeVisible();
+      expect(worker.uploadCount()).toBe(3);
+      expect(worker.posts).toHaveLength(2);
+      const [instagram, linkedin] = worker.posts;
+      expect(instagram).toMatchObject({
+        channelId: "ig",
+        mediaIds: [mediaIdOf(1), mediaIdOf(2), mediaIdOf(3)],
+        text: "Seria trzech grafik",
+        mode: "addToQueue",
+      });
+      expect(instagram).not.toHaveProperty("mediaId");
+      expect(linkedin).toMatchObject({ channelId: "li", mediaId: MEDIA_ID });
+      expect(linkedin).not.toHaveProperty("mediaIds");
     });
   });
 

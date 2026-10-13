@@ -10,6 +10,8 @@ export const containsLink = (text: string) => LINK_PATTERN.test(text);
 export function getPostIssues(
   service: BufferChannel["service"],
   content: PostContent,
+  /** How many graphics this channel is to get. */
+  imageCount = 1,
 ): PostIssue[] {
   const info = SERVICES[service];
   const text = content.text.trim();
@@ -34,6 +36,16 @@ export function getPostIssues(
       code: "format",
       level: "error",
       message: `${info.label} nie opublikuje formatu ${format?.ratio ?? content.formatId} jako posta. Wybierz inny format.`,
+    });
+  }
+  if (imageCount > info.maxImages) {
+    issues.push({
+      code: "tooManyImages",
+      level: "error",
+      message:
+        info.maxImages === 1
+          ? `${info.label} przyjmuje jedną grafikę w poście. Wyślij tylko pierwszą.`
+          : `${info.label} przyjmuje najwyżej ${info.maxImages} grafik w poście, a ten ma ${imageCount}. Usuń część grafik albo wyślij tylko pierwszą.`,
     });
   }
   if (!info.hasClickableLinks && containsLink(text)) {

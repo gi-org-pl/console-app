@@ -1,44 +1,85 @@
-import { useMemo, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import PageHeading from "../../shared/PageHeading/PageHeading";
 import BufferPublisher from "./BufferPublisher/BufferPublisher";
 import ContentForm from "./ContentForm/ContentForm";
 import { GRAPHIC_FORMATS, GRAPHIC_TEMPLATES } from "./ExportLab.constants";
-import type { Draft } from "./ExportLab.types";
+import type {
+  GraphicPreviewsEntry,
+  PostGraphic,
+  PreviewsState,
+} from "./ExportLab.types";
+import GraphicList from "./GraphicList/GraphicList";
+import GraphicPreviews from "./GraphicPreviews/GraphicPreviews";
 import PreviewPanel from "./PreviewPanel/PreviewPanel";
 import TemplatePicker from "./TemplatePicker/TemplatePicker";
 import { describeContent } from "./utils/describeContent";
-import { getDefaultFieldValues } from "./utils/getDefaultFieldValues";
 import { getTemplate } from "./utils/getTemplate";
-import { useGraphicPreviews } from "./utils/useGraphicPreviews";
-import { usePhoto } from "./utils/usePhoto";
+import { usePostGraphics } from "./utils/usePostGraphics";
+import { usePostPhotos } from "./utils/usePostPhotos";
 import { useTemplateThumbnails } from "./utils/useTemplateThumbnails";
 
+const RENDERING_STATE: PreviewsState = {
+  status: "rendering",
+  previews: [],
+  error: null,
+};
+
+const getSquareUrl = (state?: PreviewsState) =>
+  state?.previews.find(({ formatId }) => formatId === GRAPHIC_FORMATS[0].id)
+    ?.url;
+
 const ExportLab = () => {
-  const [draft, setDraft] = useState<Draft>(() => ({
-    templateId: GRAPHIC_TEMPLATES[0].id,
-    values: getDefaultFieldValues(),
-  }));
-  const photo = usePhoto();
-  const template = getTemplate(draft.templateId);
-  const templatePhoto = template.supportsPhoto ? photo.photo : null;
-  const content = useMemo(
-    () => ({ values: draft.values, photo: templatePhoto }),
-    [draft.values, templatePhoto],
+  const post = usePostGraphics();
+  const { graphics, active, activeIndex } = post;
+  const photos = usePostPhotos(active.id);
+  // One queue for the whole post: its graphics are rasterized one after another.
+  const renderQueue = useRef(Promise.resolve());
+  const [previewsById, setPreviewsById] = useState<
+    Readonly<Record<string, GraphicPreviewsEntry>>
+  >({});
+  const handlePreviews = useCallback(
+    (graphicId: string, previews: GraphicPreviewsEntry | null) =>
+      setPreviewsById(({ [graphicId]: _previous, ...rest }) =>
+        previews ? { ...rest, [graphicId]: previews } : rest,
+      ),
+    [],
   );
-  const previews = useGraphicPreviews(template, content);
+  // Previews count only for the graphic and the photo they were drawn from. A
+  // graphic that changed is being rendered from the moment it changed, so
+  // nothing downstream can take the previews of what it was before for ready.
+  const previewsOf = (graphic: PostGraphic): PreviewsState => {
+    const entry = previewsById[graphic.id];
+    return entry?.graphic === graphic &&
+      entry.photo === photos.photoOf(graphic.id)
+      ? entry.state
+      : RENDERING_STATE;
+  };
+
+  const template = getTemplate(active.templateId);
+  const previews = previewsOf(active);
   const otherThumbnails = useTemplateThumbnails(
     GRAPHIC_TEMPLATES,
-    draft.values,
-    photo.photo,
+    active.values,
+    photos.controls.photo,
     template.id,
   );
   // The selected template's thumbnail is its square preview, already rendered.
   const thumbnails = {
     ...otherThumbnails,
-    [template.id]: previews.previews.find(
-      (preview) => preview.formatId === GRAPHIC_FORMATS[0].id,
-    )?.url,
+    [template.id]: getSquareUrl(previews),
   };
+
+  function addGraphic() {
+    const sourceId = active.id;
+    const copyId = post.add();
+    if (copyId) photos.copy(sourceId, copyId);
+  }
+
+  function removeGraphic(graphicId: string) {
+    if (graphics.length === 1) return;
+    post.remove(graphicId);
+    photos.drop(graphicId);
+  }
 
   return (
     <>
@@ -48,36 +89,65 @@ const ExportLab = () => {
         title="Generator grafik"
         description="Wybierz szablon, wygeneruj grafikę i opublikuj ją w social mediach."
       />
+      {graphics.map((graphic) => (
+        <GraphicPreviews
+          key={graphic.id}
+          graphic={graphic}
+          photo={photos.photoOf(graphic.id)}
+          queue={renderQueue}
+          onChange={handlePreviews}
+        />
+      ))}
       <div className="mt-8 grid items-start gap-4 tablet:grid-cols-[272px_minmax(0,1fr)] desktop:grid-cols-[320px_minmax(0,1fr)] desktop:gap-8">
         <div className="grid min-w-0 gap-4">
+          <GraphicList
+            items={graphics.map((graphic) => {
+              // The thumbnail may lag behind an edit; the warning may not.
+              const shown = previewsById[graphic.id]?.state;
+              return {
+                id: graphic.id,
+                thumbnailUrl: getSquareUrl(shown),
+                hasOverflow: previewsOf(graphic).previews.some(
+                  ({ hasOverflow }) => hasOverflow,
+                ),
+              };
+            })}
+            activeId={active.id}
+            canAdd={post.canAdd}
+            onSelect={post.select}
+            onAdd={addGraphic}
+            onMove={post.move}
+            onRemove={removeGraphic}
+          />
           <TemplatePicker
             templates={GRAPHIC_TEMPLATES}
             selectedId={template.id}
             thumbnails={thumbnails}
             onSelect={(templateId) =>
-              setDraft((prev) => ({ ...prev, templateId }))
+              post.update((draft) => ({ ...draft, templateId }))
             }
           />
           <ContentForm
             template={template}
-            values={draft.values}
+            values={active.values}
             error={previews.error}
             onChange={(fieldId, value) =>
-              setDraft((prev) => ({
-                ...prev,
-                values: { ...prev.values, [fieldId]: value },
+              post.update((draft) => ({
+                ...draft,
+                values: { ...draft.values, [fieldId]: value },
               }))
             }
-            photo={photo}
+            photo={photos.controls}
           />
         </div>
         <PreviewPanel
           state={previews}
-          description={describeContent(template, draft.values)}
-          isPhotoLoading={photo.isLoading}
+          description={describeContent(template, active.values)}
+          isPhotoLoading={photos.controls.isLoading}
+          position={{ number: activeIndex + 1, count: graphics.length }}
         />
       </div>
-      <BufferPublisher previews={previews} />
+      <BufferPublisher graphics={graphics.map(previewsOf)} />
     </>
   );
 };

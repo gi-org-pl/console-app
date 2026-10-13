@@ -1,3 +1,4 @@
+import { MAX_POST_IMAGES } from "../../../services/buffer/schemas/buffer.schemas";
 import type { GraphicFormat, GraphicTemplate } from "./ExportLab.types";
 import { NEWS_TEMPLATE } from "./templates/NewsTemplate/NewsTemplate.constants";
 import { STANDARD_TEMPLATE } from "./templates/StandardTemplate/StandardTemplate.constants";
@@ -38,6 +39,9 @@ export const GRAPHIC_TEMPLATES: readonly GraphicTemplate[] = [
   STANDARD_TEMPLATE,
   NEWS_TEMPLATE,
 ];
+
+/** The most graphics one post may hold: what the publishing Worker takes in one request. */
+export const MAX_POST_GRAPHICS = MAX_POST_IMAGES;
 
 export const PHOTO_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 /** Longest photo edge kept after upload: twice the widest format, so crops stay sharp. */

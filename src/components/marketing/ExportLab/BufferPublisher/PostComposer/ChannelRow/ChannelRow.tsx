@@ -13,6 +13,7 @@ import FormatPicker from "../FormatPicker/FormatPicker";
 import { SERVICES } from "../PostComposer.constants";
 import type {
   ChannelPublishResult,
+  ImageScope,
   PostContent,
   PostIssue,
 } from "../PostComposer.types";
@@ -21,14 +22,23 @@ interface Props {
   channel: BufferChannel;
   content: PostContent;
   isCustomized: boolean;
+  /** The formats of the first graphic of the post. */
   images: readonly Preview[];
+  /** How many graphics the post holds. */
+  graphicCount: number;
+  /** Whether this channel gets every graphic or the first only. */
+  imageScope: ImageScope;
   issues: readonly PostIssue[];
   result?: ChannelPublishResult;
   isDisabled: boolean;
   onCustomize: () => void;
   onReset: () => void;
   onChange: (content: PostContent) => void;
+  onImageScopeChange: (imageScope: ImageScope) => void;
 }
+
+const SCOPE_OPTION_CLASS_NAME =
+  "cursor-pointer rounded-lg border border-app-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-app-hover has-checked:border-app-accent has-checked:bg-app-accent/10 has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-app-focus";
 
 const RESULT_BADGE: Record<
   ChannelPublishResult["status"],
@@ -48,12 +58,15 @@ const ChannelRow = ({
   content,
   isCustomized,
   images,
+  graphicCount,
+  imageScope,
   issues,
   result,
   isDisabled,
   onCustomize,
   onReset,
   onChange,
+  onImageScopeChange,
 }: Props) => {
   const info = SERVICES[channel.service];
   const image = images.find(({ formatId }) => formatId === content.formatId);
@@ -63,6 +76,14 @@ const ChannelRow = ({
     ({ level, code }) => level === "error" && code !== "empty",
   );
   const isPublished = result?.status === "success";
+  const hasSeveralGraphics = graphicCount > 1;
+  // A network that takes one image has nothing to choose from.
+  const canChooseScope = info.maxImages > 1;
+  const sentCount = imageScope === "all" ? graphicCount : 1;
+  const scopeOptions: readonly { value: ImageScope; label: string }[] = [
+    { value: "all", label: `Wszystkie grafiki (${graphicCount})` },
+    { value: "first", label: "Tylko pierwsza" },
+  ];
 
   return (
     <li className="overflow-hidden rounded-lg border border-app-border">
@@ -83,6 +104,14 @@ const ChannelRow = ({
           >
             <FontAwesomeIcon icon={info.icon} />
           </span>
+          {sentCount > 1 && (
+            <span
+              aria-hidden="true"
+              className="absolute -top-1.5 -left-1.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-app-surface bg-app-accent px-1 text-xs leading-none font-semibold text-white"
+            >
+              {sentCount}
+            </span>
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <strong className="block truncate font-semibold">
@@ -90,6 +119,8 @@ const ChannelRow = ({
           </strong>
           <span className="block truncate text-sm text-app-muted">
             {info.label} · {format?.ratio} ·{" "}
+            {hasSeveralGraphics &&
+              `${sentCount === 1 ? "1 grafika" : `grafik: ${sentCount}`} · `}
             {isCustomized ? "własna treść" : "wspólna treść"}
           </span>
         </div>
@@ -131,6 +162,33 @@ const ChannelRow = ({
           ))}
           {result?.status === "error" && <li>{result.message}</li>}
         </ul>
+      )}
+      {hasSeveralGraphics && !isPublished && (
+        <div className="grid gap-2 border-t border-app-border px-3 py-2">
+          {canChooseScope && (
+            <div
+              role="radiogroup"
+              aria-label={`Grafiki dla: ${channel.name}`}
+              className="flex flex-wrap gap-2"
+            >
+              {scopeOptions.map(({ value, label }) => (
+                <label key={value} className={SCOPE_OPTION_CLASS_NAME}>
+                  <input
+                    type="radio"
+                    name={`image-scope-${channel.id}`}
+                    value={value}
+                    checked={value === imageScope}
+                    disabled={isDisabled}
+                    onChange={() => onImageScopeChange(value)}
+                    className="sr-only"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="text-sm text-app-muted">{info.imageScopeHint}</p>
+        </div>
       )}
       {isCustomized && !isPublished && (
         <div className="grid gap-4 border-t border-app-border bg-app-surface-2/40 p-3">
