@@ -42,3 +42,22 @@ describe("bufferPublishInputSchema", () => {
     });
   });
 });
+
+describe("bufferPublishInputSchema for a story", () => {
+  const { text: _caption, ...withoutText } = base;
+
+  it("takes a story without a text, and a post with one", () => {
+    expect(accepts({ ...withoutText, mediaId: ID, type: "story" })).toBe(true);
+    expect(accepts({ ...base, mediaId: ID, type: "post" })).toBe(true);
+    expect(accepts({ ...base, mediaId: ID })).toBe(true);
+  });
+
+  it.each([
+    ["a story with a caption", { ...base, type: "story" }],
+    ["a post without a text", withoutText],
+    ["a post without a text, named as one", { ...withoutText, type: "post" }],
+    ["a type that is not known", { ...base, type: "reel" }],
+  ])("refuses %s", (_name, input) => {
+    expect(accepts({ ...input, mediaId: ID })).toBe(false);
+  });
+});

@@ -14,12 +14,15 @@ import ChannelRow from "./ChannelRow/ChannelRow";
 import FormatPicker from "./FormatPicker/FormatPicker";
 import {
   DEFAULT_FORMAT_ID,
+  getEntryKey,
   PUBLISH_MODES,
   SERVICES,
+  STORY_FORMAT_ID,
 } from "./PostComposer.constants";
 import type {
   ImageScope,
   PostContent,
+  PostKind,
   PublishDraft,
 } from "./PostComposer.types";
 import PublishSuccess from "./PublishSuccess/PublishSuccess";
@@ -36,6 +39,7 @@ interface Props {
 }
 
 const NO_IMAGES: readonly Preview[] = [];
+const POST_ONLY: readonly PostKind[] = ["post"];
 
 const TEXT_BUTTON_CLASS_NAME =
   "text-sm font-semibold text-app-accent-text hover:underline disabled:cursor-not-allowed disabled:opacity-60";
@@ -46,6 +50,7 @@ function createDraft(channelIds: readonly string[]): PublishDraft {
     shared: { formatId: DEFAULT_FORMAT_ID, text: "" },
     overrides: {},
     imageScopes: {},
+    kinds: {},
     mode: "addToQueue",
     dueAt: "",
   };
@@ -69,21 +74,40 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
   /** The graphics a channel gets: all of them, or the first only. */
   const graphicsFor = (channel: BufferChannel) =>
     scopeFor(channel) === "all" ? graphics : graphics.slice(0, 1);
+  /** What a channel publishes: a post, a story, or both - a story only where the network has them. */
+  const kindsFor = ({ id, service }: BufferChannel) =>
+    SERVICES[service].hasStories ? (draft.kinds[id] ?? POST_ONLY) : POST_ONLY;
+  // The rules of a post - its caption, its format, the number of images - do
+  // not apply to a channel that publishes a story only.
   const issuesFor = (channel: BufferChannel) =>
-    getPostIssues(
-      channel.service,
-      contentFor(channel.id),
-      graphicsFor(channel).length,
-    );
-  const pending = selected.filter(
-    ({ id }) => results[id]?.status !== "success",
+    kindsFor(channel).includes("post")
+      ? getPostIssues(
+          channel.service,
+          contentFor(channel.id),
+          graphicsFor(channel).length,
+        )
+      : [];
+  // One entry per channel and kind: a channel that publishes a post and a
+  // story gets two Buffer posts, each with its own result.
+  const entries = selected.flatMap((channel) =>
+    kindsFor(channel).map((kind) => ({
+      channel,
+      kind,
+      key: getEntryKey(channel.id, kind),
+    })),
+  );
+  const pendingEntries = entries.filter(
+    ({ key }) => results[key]?.status !== "success",
+  );
+  const pending = selected.filter(({ id }) =>
+    pendingEntries.some(({ channel }) => channel.id === id),
   );
   const mode = PUBLISH_MODES.find(({ value }) => value === draft.mode);
 
-  if (selected.length > 0 && pending.length === 0) {
+  if (selected.length > 0 && pendingEntries.length === 0) {
     return (
       <PublishSuccess
-        channels={selected}
+        entries={entries}
         mode={draft.mode}
         dueAt={draft.dueAt}
         onStartOver={() => {
@@ -94,9 +118,11 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
     );
   }
 
-  const pendingIssues = pending.flatMap((channel) =>
-    issuesFor(channel).filter(({ level }) => level === "error"),
-  );
+  const pendingIssues = pendingEntries
+    .filter(({ kind }) => kind === "post")
+    .flatMap(({ channel }) =>
+      issuesFor(channel).filter(({ level }) => level === "error"),
+    );
   const blocker =
     selected.length === 0
       ? "Wybierz co najmniej jeden kanał."
@@ -111,9 +137,15 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
               : draft.mode === "customScheduled"
                 ? getScheduleError(draft.dueAt)
                 : null;
-  const hasFailures = pending.some(({ id }) => results[id]?.status === "error");
+  const hasFailures = pendingEntries.some(
+    ({ key }) => results[key]?.status === "error",
+  );
+  // The shared caption goes to the channels that publish a post with it.
   const sharedServices = selected
-    .filter(({ id }) => !draft.overrides[id])
+    .filter(
+      (channel) =>
+        !draft.overrides[channel.id] && kindsFor(channel).includes("post"),
+    )
     .map(({ service }) => service);
   const allSelected = selected.length === channels.length;
 
@@ -141,12 +173,27 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
   }
 
   function submit() {
+    const schedule = {
+      mode: draft.mode,
+      dueAt:
+        draft.mode === "customScheduled"
+          ? new Date(draft.dueAt).toISOString()
+          : undefined,
+    };
     void publish(
-      pending.map((channel) => {
-        const { id } = channel;
-        const content = contentFor(id);
+      pendingEntries.map(({ channel, kind, key }) => {
+        const entry = { key, kind, channelId: channel.id, ...schedule };
+        // A story is the first graphic in the story format, with no caption.
+        if (kind === "story")
+          return {
+            ...entry,
+            files: [
+              images.find(({ formatId }) => formatId === STORY_FORMAT_ID)?.file,
+            ],
+          };
+        const content = contentFor(channel.id);
         return {
-          channelId: id,
+          ...entry,
           // One format for all images of a channel, so they match in size.
           files: graphicsFor(channel).map(
             (formats) =>
@@ -154,11 +201,6 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
                 ?.file,
           ),
           text: content.text.trim(),
-          mode: draft.mode,
-          dueAt:
-            draft.mode === "customScheduled"
-              ? new Date(draft.dueAt).toISOString()
-              : undefined,
         };
       }),
     );
@@ -230,14 +272,21 @@ const PostComposer = ({ session, graphics, graphicStatus }: Props) => {
                   images={images}
                   graphicCount={graphics.length}
                   imageScope={scopeFor(channel)}
+                  kinds={kindsFor(channel)}
                   issues={issuesFor(channel)}
-                  result={results[channel.id]}
+                  results={{
+                    post: results[getEntryKey(channel.id, "post")],
+                    story: results[getEntryKey(channel.id, "story")],
+                  }}
                   isDisabled={isPublishing}
                   onCustomize={() =>
                     setOverride(channel.id, { ...draft.shared })
                   }
                   onReset={() => setOverride(channel.id, null)}
                   onChange={(content) => setOverride(channel.id, content)}
+                  onKindsChange={(kinds) =>
+                    update({ kinds: { ...draft.kinds, [channel.id]: kinds } })
+                  }
                   onImageScopeChange={(imageScope) =>
                     update({
                       imageScopes: {

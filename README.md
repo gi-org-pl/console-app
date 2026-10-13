@@ -49,6 +49,16 @@ A post is an ordered set of graphics. The panel "Grafiki posta" adds a graphic (
 - **Text that does not fit** marks the graphic in the panel, so it is clear which one it concerns; it does not block publishing, as before.
 - Not covered: the render route and `yarn render` still make one graphic at a time, and there is no single download of the whole set.
 
+## Stories (Marketing)
+
+A channel of a network that has stories - Instagram and Facebook, `hasStories` in `SERVICES` - can publish the material as a post, as a story ("Relacja"), or as both in one run.
+
+- **A story** is the first graphic of the post in the 9:16 format, sent without a caption and with `type: "story"`. A channel that publishes a story only needs no caption and has no character counter.
+- **A post and a story together** are two Buffer posts for one channel, each with its own request ID and its own result; the row of the channel and the confirmation show them separately, and a retry sends only what failed.
+- **The 9:16 format as a feed post** stays blocked on Instagram; the message now says that it can go out as a story.
+- The three modes - queue, now, a chosen time - work for a story as for a post.
+- Needs a Worker that knows the type (gi-org-pl/console-publisher-worker#8). Whether Buffer publishes the story by itself or sends a reminder to a phone depends on the Instagram account; see the Worker's README.
+
 ## Funding banners (Marketing)
 
 | Option | Programme | Images |

@@ -35,7 +35,7 @@ export function getPostIssues(
     issues.push({
       code: "format",
       level: "error",
-      message: `${info.label} nie opublikuje formatu ${format?.ratio ?? content.formatId} jako posta. Wybierz inny format.`,
+      message: `${info.label} nie opublikuje formatu ${format?.ratio ?? content.formatId} jako posta. Wybierz inny format${info.hasStories ? " albo opublikuj go jako relację" : ""}.`,
     });
   }
   if (imageCount > info.maxImages) {
