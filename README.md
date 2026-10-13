@@ -51,8 +51,9 @@ A post is an ordered set of graphics. The panel "Grafiki posta" adds a graphic (
 
 ## Stories (Marketing)
 
-A channel of a network that has stories - Instagram and Facebook, `hasStories` in `SERVICES` - can publish the material as a post, as a story ("Relacja"), or as both in one run.
+A channel of a network that has stories - Instagram only, `hasStories` in `SERVICES` - can publish the material as a post, as a story ("Relacja"), or as both in one run.
 
+- **Facebook has no stories here:** Buffer does not publish a story to a Facebook Page by itself, only through a notification on a phone, so the Worker refuses it (gi-org-pl/console-publisher-worker#20) and a Facebook channel is offered a post only.
 - **A story** is the first graphic of the post in the 9:16 format, sent without a caption and with `type: "story"`. A channel that publishes a story only needs no caption and has no character counter.
 - **A post and a story together** are two Buffer posts for one channel, each with its own request ID and its own result; the row of the channel and the confirmation show them separately, and a retry sends only what failed.
 - **The 9:16 format as a feed post** stays blocked on Instagram; the message now says that it can go out as a story.

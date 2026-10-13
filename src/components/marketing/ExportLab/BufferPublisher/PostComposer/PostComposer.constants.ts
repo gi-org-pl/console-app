@@ -57,7 +57,7 @@ export const SERVICES: Record<BufferChannel["service"], ServiceInfo> = {
     defaultImageScope: "first",
     imageScopeHint:
       "Facebook układa kilka grafik w kolaż, więc domyślnie dostaje tylko pierwszą.",
-    hasStories: true,
+    hasStories: false,
   },
   instagram: {
     label: "Instagram",
