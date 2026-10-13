@@ -9,6 +9,12 @@ export const FUNDING_OPTIONS: readonly FundingOption[] = [
     leftImage: `${import.meta.env.BASE_URL}grants/proo-left.png`,
     rightImage: `${import.meta.env.BASE_URL}grants/proo-right.png`,
   },
+  {
+    value: "fm",
+    label: "Fundusz Młodzieżowy",
+    leftImage: `${import.meta.env.BASE_URL}grants/fm-left.png`,
+    rightImage: `${import.meta.env.BASE_URL}grants/fm-right.png`,
+  },
 ];
 
 export function getFundingGrant(value: string) {

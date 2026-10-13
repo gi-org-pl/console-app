@@ -65,6 +65,28 @@ describe("<StandardTemplate />", () => {
       );
     });
 
+    it("shows the images of the grant that is selected", () => {
+      const { container } = render(
+        <StandardTemplate
+          values={{ ...values, funding: "fm" }}
+          photo={null}
+          format={square}
+        />,
+      );
+      const banner = container.querySelector('[data-funding-banner="fm"]');
+      expect(
+        [...(banner?.querySelectorAll("img") ?? [])].map((image) =>
+          image.getAttribute("src"),
+        ),
+      ).toEqual([
+        `${import.meta.env.BASE_URL}grants/fm-left.png`,
+        `${import.meta.env.BASE_URL}grants/fm-right.png`,
+      ]);
+      expect(
+        container.querySelector('[data-funding-banner="proo"]'),
+      ).not.toBeInTheDocument();
+    });
+
     it("omits the bar when no funding is selected", () => {
       const { container } = render(
         <StandardTemplate
