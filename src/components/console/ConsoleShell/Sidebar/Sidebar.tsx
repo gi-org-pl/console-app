@@ -3,7 +3,8 @@ import { faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link, NavLink, useLocation } from "react-router";
 import { twMerge } from "tailwind-merge";
-import consoleLogo from "../../../../assets/icons/console-logo.svg";
+import consoleWordmark from "../../../../assets/icons/console-wordmark.svg";
+import giLogomark from "../../../../assets/icons/gi-logomark-on-dark.svg";
 import { CONSOLE_MODULES } from "../../../../constants/console";
 import Eyebrow from "../../../shared/Eyebrow/Eyebrow";
 import AccountControl from "./AccountControl/AccountControl";
@@ -49,13 +50,24 @@ const Sidebar = () => {
           aria-label="Console — strona główna"
           className="shrink-0 px-4"
         >
-          <img
-            className="block h-auto w-28 sm:w-36 desktop:w-44"
-            src={consoleLogo}
-            width={477}
-            height={96}
-            alt=""
-          />
+          {/* The brand book has no Console lockup: the GI logomark and the wordmark stand apart,
+              with at least the logomark's clear space (2X, 0.3 of its height) between them. */}
+          <span className="flex h-5.5 items-center gap-2 sm:h-7 sm:gap-2.5 desktop:h-9 desktop:gap-3">
+            <img
+              className="block h-full w-auto"
+              src={giLogomark}
+              width={316}
+              height={256}
+              alt=""
+            />
+            <img
+              className="block h-2/3 w-auto"
+              src={consoleWordmark}
+              width={340}
+              height={64}
+              alt=""
+            />
+          </span>
         </Link>
         <AccountControl className="justify-end sm:hidden" />
       </div>

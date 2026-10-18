@@ -1,6 +1,6 @@
 import { twMerge } from "tailwind-merge";
-import footerLogo from "../../../../../../assets/icons/footer-logo.svg";
 import footerText from "../../../../../../assets/icons/footer-text.svg";
+import footerLogo from "../../../../../../assets/icons/gi-primary-on-dark.svg";
 import type { GraphicContent } from "../../../ExportLab.types";
 import { stripHighlights } from "../../../utils/tokenizeHighlights";
 import FundingBanner from "../../FundingBanner/FundingBanner";
