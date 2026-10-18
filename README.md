@@ -1,3 +1,5 @@
+![console-app header](https://raw.githubusercontent.com/gi-org-pl/console-app/main/.github/image/header.png)
+
 # Console
 
 A shared shell for Generacja Innowacja's internal tools. It currently ships one module, **Marketing**, a browser-based graphics export lab. There are no accounts, backend or database. Demo content is not stored anywhere; a page refresh resets it.
